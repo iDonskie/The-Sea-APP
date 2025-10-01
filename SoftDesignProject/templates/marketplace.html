@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace{% endblock %}
+
+{% block content %}
+<h1>Marketplace</h1>
+<p>Discover a variety of student essentials and second-hand items.</p>
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+  {% for item in items %}
+    <div style="border: 1px solid #ddd; padding: 15px; width: 220px; text-align: center; border-radius: 8px; background-color: #fafafa;">
+
+      <img src="{{ url_for('static', filename='products/' ~ item.image) }}" 
+           alt="{{ item.name }}" width="180" style="margin-bottom: 10px; border-radius: 5px;">
+      <h3>{{ item.name }}</h3>
+      <p><strong>₱{{ item.price }}</strong></p>
+      <p style="font-size: 14px; color: #555; margin: 10px 0;">{{ item.description[:40] }}...</p>
+      <button onclick="openModal(`{{ item.name }}`, `{{ item.price }}`, `{{ item.description }}`, `{{ url_for('static', filename='products/' ~ item.image) }}`)" 
+        style="margin-top: 10px; padding: 8px 12px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Inquire
+      </button>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div id="inquiryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+  <div id="modalBox" style="background:#fff; width:420px; margin:8% auto; padding:20px; border-radius:8px; text-align:center; position:relative;">
+    <span onclick="closeModal()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:18px;">✖</span>
+    
+    <img id="modalImage" src="" alt="Product Image" width="180" style="margin-bottom:15px; border-radius:5px;">
+    <h2 id="modalTitle"></h2>
+    <p><strong>₱<span id="modalPrice"></span></strong></p>
+    <p id="modalDescription" style="color:#555; font-size:14px;"></p>
+    
+    <button onclick="alert('Your inquiry has been sent!')" 
+            style="margin-top:15px; padding:10px 15px; background-color:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">
+      Confirm Inquiry
+    </button>
+  </div>
+</div>
+
+<script>
+  function openModal(name, price, description, image) {
+    document.getElementById("modalTitle").innerText = name;
+    document.getElementById("modalPrice").innerText = price;
+    document.getElementById("modalDescription").innerText = description;
+    document.getElementById("modalImage").src = image;
+    document.getElementById("inquiryModal").style.display = "block";
+  }
+
+  function closeModal() {
+    document.getElementById("inquiryModal").style.display = "none";
+  }
+
+  // Close modal when clicking outside the box
+  window.onclick = function(event) {
+    let modal = document.getElementById("inquiryModal");
+    let box = document.getElementById("modalBox");
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  }
+</script>
+{% endblock %}
