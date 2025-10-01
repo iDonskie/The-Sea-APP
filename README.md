@@ -1,0 +1,1 @@
+potangina mo maam loya
