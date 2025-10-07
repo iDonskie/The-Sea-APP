@@ -8,7 +8,33 @@ def home():
 
 @app.route('/services')
 def services():
-    return render_template('services.html')
+    services = [
+        {
+            "name": "Modern Mist",
+            "short_desc": "Affordable handmade perfumes by students.",
+            "description": "ScentScape offers long-lasting, student-made fragrances crafted with love and creativity. Visit us to explore signature scents inspired by campus life.",
+            "image": ['services/perfume1.jpg', "services/perfume2.jpg"]
+        },
+        {
+            "name": "Cookies by Clark",
+            "short_desc": "Freshly baked cookies made daily.",
+            "description": "Soft, chewy, and irresistible — our cookies are baked fresh every day by student bakers. Perfect for snacks or gifts!",
+            "image": ["services/cookie1.jpeg", "services/cookie2.jpeg"]
+        },
+        {
+            "name": "Petal Express",
+            "short_desc": "Fresh flowers on the go.",
+            "description": "Petal Express offers affordable blooms, dedicated to making you smile—straight from the heart. 💐",
+            "image": ["services/flower1.jpg", "services/flower2.jpg"]
+        },
+        {
+            "name": "Hiro Bites",
+            "short_desc": "Creamy graham bars made by students.",
+            "description": "Unang kagat, Mmhmm ang sarap! Hiro Bites is ready to sweeten your day ✨",
+            "image": ["services/graham.jpg", "services/graham2.jpg"]
+        }
+    ]
+    return render_template('services.html', services=services)
 
 @app.route('/marketplace')
 def marketplace():
