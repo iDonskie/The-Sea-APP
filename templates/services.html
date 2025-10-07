@@ -3,10 +3,193 @@
 {% block title %}Services{% endblock %}
 
 {% block content %}
-<h1>Our Services</h1>
-<ul>
-    <li>Consulting</li>
-    <li>Support</li>
-    <li>Custom Solutions</li>
-</ul>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 30px 0;
+  }
+
+  .services-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .service-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .service-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .service-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  /* Overlay for popup */
+  .overlay {
+    display: none;
+  }
+
+  .overlay:target {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+
+  /* Popup box */
+  .popup {
+    background: white;
+    border-radius: 12px;
+    max-width: 650px;
+    width: 90%;
+    padding: 20px;
+    position: relative;
+    text-align: center;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  }
+
+  .popup h2 {
+    margin: 10px 0;
+  }
+
+  .popup p {
+    color: #555;
+    margin-bottom: 20px;
+  }
+
+  /* Gallery inside popup */
+  .popup .image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .popup .image-gallery a img {
+    width: 200px;
+    height: auto;
+    object-fit: 180px;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+  }
+
+  .popup .image-gallery a img:hover {
+    transform: scale(1.05);
+  }
+
+  /* Enlarged image popup */
+  .img-popup {
+    display: none;
+  }
+
+  .img-popup:target {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+  }
+
+  .img-popup img {
+    max-width: 90%;
+    max-height: 80vh;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+
+  .img-popup a.close-img {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    text-decoration: none;
+    font-size: 36px;
+    color: white;
+    font-weight: bold;
+  }
+
+  .img-popup a.close-img:hover {
+    color: red;
+  }
+
+  /* Close button for service popup */
+  .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    text-decoration: none;
+    font-size: 28px;
+    color: #333;
+  }
+
+  .close:hover {
+    color: red;
+  }
+</style>
+
+<h1>Student Businesses</h1>
+
+<div class="services-container">
+  {% for service in services %}
+  {% set outer_index = loop.index %}
+
+  <!-- Service card -->
+  <a href="#popup{{ outer_index }}" class="service-card">
+    <img src="{{ url_for('static', filename=service.image[0]) }}" alt="{{ service.name }}">
+    <h3>{{ service.name }}</h3>
+    <p>{{ service.short_desc }}</p>
+  </a>
+
+  <!-- Popup -->
+  <div id="popup{{ outer_index }}" class="overlay">
+    <div class="popup">
+      <a href="#" class="close">&times;</a>
+
+      <div class="image-gallery">
+        {% for image in service.image %}
+          <a href="#img{{ loop.index }}_{{ outer_index }}">
+            <img src="{{ url_for('static', filename=image) }}" alt="{{ service.name }}">
+          </a>
+        {% endfor %}
+      </div>
+
+      <h2>{{ service.name }}</h2>
+      <p>{{ service.description }}</p>
+    </div>
+  </div>
+
+  <!-- Full image popups -->
+  {% for image in service.image %}
+  <div id="img{{ loop.index }}_{{ outer_index }}" class="img-popup">
+    <a href="#popup{{ outer_index }}" class="close-img">&times;</a>
+    <img src="{{ url_for('static', filename=image) }}" alt="{{ service.name }}">
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
 {% endblock %}
