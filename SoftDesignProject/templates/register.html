@@ -1,21 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
   <h1>Register</h1>
-  <p>Fill out the form below to register:</p>
-
   <form method="POST" action="{{ url_for('register') }}">
     <label for="name">Full Name:</label><br>
     <input type="text" id="name" name="name" required><br><br>
-
     <label for="email">Email:</label><br>
     <input type="email" id="email" name="email" required><br><br>
-
     <label for="password">Password:</label><br>
     <input type="password" id="password" name="password" required><br><br>
-
-    <label for="org">Organization (optional):</label><br>
-    <input type="text" id="org" name="org"><br><br>
-
     <button type="submit">Register</button>
   </form>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
 {% endblock %}

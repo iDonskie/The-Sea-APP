@@ -1,6 +1,23 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.utils import secure_filename
+import sqlite3
+import os
 
 app = Flask(__name__)
+app.secret_key = "dev"
+
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_db_connection():
+    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'database', 'marketplace.db')
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 @app.route('/')
 def home():
@@ -8,58 +25,108 @@ def home():
 
 @app.route('/services')
 def services():
-    services = [
-        {
-            "name": "Modern Mist",
-            "short_desc": "Affordable handmade perfumes by students.",
-            "description": "ScentScape offers long-lasting, student-made fragrances crafted with love and creativity. Visit us to explore signature scents inspired by campus life.",
-            "image": ['services/perfume1.jpg', "services/perfume2.jpg"]
-        },
-        {
-            "name": "Cookies by Clark",
-            "short_desc": "Freshly baked cookies made daily.",
-            "description": "Soft, chewy, and irresistible — our cookies are baked fresh every day by student bakers. Perfect for snacks or gifts!",
-            "image": ["services/cookie1.jpeg", "services/cookie2.jpeg"]
-        },
-        {
-            "name": "Petal Express",
-            "short_desc": "Fresh flowers on the go.",
-            "description": "Petal Express offers affordable blooms, dedicated to making you smile—straight from the heart. 💐",
-            "image": ["services/flower1.jpg", "services/flower2.jpg"]
-        },
-        {
-            "name": "Hiro Bites",
-            "short_desc": "Creamy graham bars made by students.",
-            "description": "Unang kagat, Mmhmm ang sarap! Hiro Bites is ready to sweeten your day ✨",
-            "image": ["services/graham.jpg", "services/graham2.jpg"]
-        }
-    ]
-    return render_template('services.html', services=services)
-
-@app.route('/marketplace')
-def marketplace():
-    items = [
-        {'name': 'Calculator', 'price': '900', "image": "item1.jpeg", "description": "A high-quality calculator for all your mathematical needs."},
-        {'name': 'Headphones', 'price': '1200', "image": "item2.jpeg", "description": "Experience immersive sound with these comfortable headphones."},
-        {'name': 'Lamp', 'price': '500', "image": "item3.jpeg", "description": "A stylish lamp to brighten up your workspace or living area."},
-        {'name': 'Switch', 'price': '9900', "image": "item4.jpeg", "description": "A versatile switch for your gaming and entertainment needs."}, 
-    ]
-    return render_template('marketplace.html', items=items)
-
-@app.route('/organizations')
-def organizations():
-    return render_template('organizations.html')
+    return render_template('services.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-        org = request.form['org']
-        return f"Thanks for registering, {name}! We sent a confirmation to {email}."
-    
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+
+        if not (name and email and password):
+            flash("Please fill all required fields.")
+            return render_template('register.html')
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("INSERT INTO students (name, email, password) VALUES (?, ?, ?)",
+                        (name, email, password))
+            conn.commit()
+            flash("Registered successfully.")
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            flash("Email already registered.")
+            return render_template('register.html')
+        finally:
+            conn.close()
+
     return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM students WHERE email=? AND password=?", (email, password))
+        user = cur.fetchone()
+        conn.close()
+
+        if user:
+            session['user_id'] = user['student_id']
+            session['user_name'] = user['name']
+            flash("Login successful!")
+            return redirect(url_for('marketplace'))
+        else:
+            flash("Invalid email or password.")
+            return render_template('login.html')
+    return render_template('login.html')
+
+@app.route('/marketplace')
+def marketplace():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM items")
+    items = cur.fetchall()
+    conn.close()
+    return render_template('marketplace.html', items=items)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("Logged out.")
+    return redirect(url_for('login'))
+
+@app.route('/add_item', methods=['GET', 'POST'])
+def add_item():
+    student_id = session.get('user_id')
+    if not student_id:
+        flash("You must be logged in to add items.")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        item_name = request.form['item_name']
+        price = request.form['price']
+        description = request.form['description']
+        contact = request.form['contact']
+        payment = request.form['payment']
+
+        image_file = request.files.get('image')
+        image_filename = None
+        if image_file and image_file.filename:
+            filename = secure_filename(image_file.filename)
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image_file.save(image_path)
+            image_filename = filename
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO items (student_id, item_name, price, description, image, contact, payment) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (student_id, item_name, price, description, image_filename, contact, payment)
+        )
+        conn.commit()
+        conn.close()
+
+        flash("✅ Item added successfully!")
+        return redirect(url_for('marketplace'))
+
+    return render_template('add_item.html')
 
 if __name__ == "__main__":
     app.run(debug=True)
