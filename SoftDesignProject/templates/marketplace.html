@@ -6,16 +6,28 @@
   {% if items %}
     <ul>
       {% for it in items %}
-        <li>
+        <li style="margin-bottom:18px;">
           <strong>{{ it['item_name'] }}</strong> — ${{ it['price'] }}<br>
+          <em>Status: {{ it['status'] or 'available' }}</em><br>
+          <small>Seller: {{ it['seller_name'] or 'Unknown' }}</small><br>
+
           {% if it['image'] %}
-            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="Product image" style="max-width:200px;"><br>
+            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="Product image" style="max-width:200px;display:block;margin-top:6px;"><br>
           {% endif %}
+
           {% if it['description'] %}
             <div>{{ it['description'] }}</div>
           {% endif %}
           <div>Contact: {{ it['contact'] }}</div>
           <div>Payment: {{ it['payment'] }}</div>
+
+          {% if session.get('user_id') and session.get('user_id') != it['student_id'] %}
+            <a href="{{ url_for('chat_page', other_id=it['student_id']) }}" style="display:inline-block;margin-top:8px;padding:6px 10px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">Message seller</a>
+          {% elif session.get('user_id') and session.get('user_id') == it['student_id'] %}
+            <a href="{{ url_for('edit_listing', item_id=it['item_id']) }}" style="display:inline-block;margin-top:8px;">Edit</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" style="display:inline-block;margin-top:8px;">Log in to message seller</a>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>

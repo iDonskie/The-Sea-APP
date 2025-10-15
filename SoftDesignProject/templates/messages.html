@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Messages</h1>
+
+  <p>
+    <a href="{{ url_for('conversations') }}">Conversations</a> |
+    <a href="{{ url_for('marketplace') }}">Marketplace</a>
+  </p>
+
+  {% if convos %}
+    <ul>
+      {% for c in convos %}
+        <li style="margin-bottom:10px;">
+          <a href="{{ url_for('chat_page', other_id=c['student_id']) }}">{{ c['name'] }}</a>
+          <small style="color:#666"> — last: {{ c['last_msg'] }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No conversations yet.</p>
+  {% endif %}
+{% endblock %}

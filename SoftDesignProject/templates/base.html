@@ -1,3 +1,4 @@
+<!-- ...existing code... -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,14 +10,19 @@
   <a href="{{ url_for('home') }}">Home</a> |
   <a href="{{ url_for('services') }}">Services</a> |
   <a href="{{ url_for('marketplace') }}">Marketplace</a> |
-  <a href="{{ url_for('register') }}">Register</a> |
-  <a href="{{ url_for('login') }}">Login</a>
-  {% if session.get('user_name') %}
-    | Logged in as {{ session['user_name'] }}
+  <a href="{{ url_for('messages') }}">Messages</a> |
+  {% if session.get('user_id') %}
+    <a href="{{ url_for('my_listings') }}">My Listings</a> |
+    <a href="{{ url_for('add_item') }}">Add Item</a> |
+    Logged in as {{ session.get('user_name') }} |
     <a href="{{ url_for('logout') }}">Logout</a>
+  {% else %}
+    <a href="{{ url_for('register') }}">Register</a> |
+    <a href="{{ url_for('login') }}">Login</a>
   {% endif %}
 </nav>
 <hr>
 {% block content %}{% endblock %}
 </body>
 </html>
+<!-- ...existing code... -->

@@ -1,15 +1,31 @@
 import sqlite3
-db_path = "c:/Users/almar/Desktop/Codings/Sea_App/SoftDesignProject/database/marketplace.db"
+import os
+
+db_path = os.path.join(os.path.dirname(__file__), "marketplace.db")
 conn = sqlite3.connect(db_path)
 cur = conn.cursor()
-try:
-    cur.execute("ALTER TABLE items ADD COLUMN contact TEXT")
-except sqlite3.OperationalError:
-    pass  # Column already exists
-try:
-    cur.execute("ALTER TABLE items ADD COLUMN payment TEXT")
-except sqlite3.OperationalError:
-    pass  # Column already exists
+
+cur.execute("PRAGMA table_info(items)")
+cols = [r[1] for r in cur.fetchall()]
+print("Existing columns:", cols)
+
+def try_add(col_sql, name):
+    if name not in cols:
+        try:
+            cur.execute(col_sql)
+            print("Added column:", name)
+        except sqlite3.OperationalError as e:
+            print("Could not add", name, "-", e)
+
+try_add("ALTER TABLE items ADD COLUMN image TEXT", "image")
+try_add("ALTER TABLE items ADD COLUMN contact TEXT", "contact")
+try_add("ALTER TABLE items ADD COLUMN payment TEXT", "payment")
+try_add("ALTER TABLE items ADD COLUMN status TEXT DEFAULT 'available'", "status")
+
 conn.commit()
+
+cur.execute("PRAGMA table_info(items)")
+cols2 = [r[1] for r in cur.fetchall()]
+print("Updated columns:", cols2)
+
 conn.close()
-print("Columns 'contact' and 'payment' added if missing.")

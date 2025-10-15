@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Chat with {{ other['name'] }}</h2>
+
+<div id="chat-window" style="border:1px solid #ccc;padding:10px;height:350px;overflow:auto;background:#fff;">
+</div>
+
+<form id="chat-form" onsubmit="return sendMessage();">
+  <input type="text" id="msg-input" placeholder="Type a message" style="width:78%;" autocomplete="off" required>
+  <button type="submit">Send</button>
+</form>
+
+<script>
+const otherId = {{ other['student_id'] }};
+const meId = {{ session.get('user_id', 0) }};
+const pollInterval = 1500;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
+}
+
+function addMessage(msg) {
+  const win = document.getElementById('chat-window');
+  const side = msg.sender_id === meId ? 'right' : 'left';
+  const wrapper = document.createElement('div');
+  wrapper.style.textAlign = side;
+  wrapper.style.margin = '8px 0';
+  const bubble = document.createElement('div');
+  bubble.style.display = 'inline-block';
+  bubble.style.padding = '8px';
+  bubble.style.borderRadius = '8px';
+  bubble.style.maxWidth = '75%';
+  bubble.style.background = msg.sender_id === meId ? '#dcf8c6' : '#f0f0f0';
+  bubble.innerHTML = escapeHtml(msg.content);
+  wrapper.appendChild(bubble);
+  const meta = document.createElement('div');
+  meta.style.fontSize = '0.8em';
+  meta.style.color = '#666';
+  meta.innerText = msg.created_at;
+  wrapper.appendChild(meta);
+  win.appendChild(wrapper);
+  win.scrollTop = win.scrollHeight;
+}
+
+async function fetchMessages() {
+  try {
+    const res = await fetch(`/chat/${otherId}/messages`);
+    if (!res.ok) return;
+    const msgs = await res.json();
+    const win = document.getElementById('chat-window');
+    win.innerHTML = '';
+    for (const m of msgs) addMessage(m);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content) return false;
+  await fetch(`/chat/${otherId}/messages`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content})
+  });
+  input.value = '';
+  fetchMessages();
+  return false;
+}
+
+fetchMessages();
+setInterval(fetchMessages, pollInterval);
+</script>
+{% endblock %}
