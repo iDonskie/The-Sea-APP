@@ -1,45 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .edit-wrap{max-width:900px;margin:28px auto;padding:20px;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.04);font-family:Segoe UI, Roboto, Arial;}
+  .edit-wrap h1{margin:0 0 18px;font-size:1.6rem}
+  .form-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+  .form-group{margin-bottom:12px}
+  label{display:block;font-weight:600;margin-bottom:6px;color:#333}
+  input[type="text"], input[type="number"], textarea, select{width:100%;padding:10px;border:1px solid #dcdcdc;border-radius:6px;font-size:0.95rem}
+  textarea{min-height:120px;resize:vertical}
+  .right-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+  .img-preview{width:100%;max-width:300px;border-radius:8px;border:1px solid #e5e5e5;object-fit:cover}
+  .small-meta{color:#666;font-size:0.9rem}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .btn{background:#007bff;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none;border:0;cursor:pointer}
+  .btn.secondary{background:#f3f4f6;color:#111;border:1px solid #e0e0e0}
+  .form-actions{margin-top:14px;display:flex;gap:10px;justify-content:flex-start}
+  @media(max-width:840px){ .form-grid{grid-template-columns:1fr;} .right-col{align-items:stretch} }
+</style>
+
+<div class="edit-wrap">
   <h1>Edit Listing</h1>
 
-  <form method="post" enctype="multipart/form-data">
-    <label>Item name:
-      <input name="item_name" value="{{ item['item_name'] }}" required>
-    </label><br>
+  <form method="post" action="{{ url_for('edit_listing', item_id=item['item_id']) }}" enctype="multipart/form-data" novalidate>
+    <div class="form-grid">
+      <div>
+        <div class="form-group">
+          <label for="item_name">Item name</label>
+          <input id="item_name" name="item_name" type="text" value="{{ item['item_name']|e }}" required>
+        </div>
 
-    <label>Price:
-      <input name="price" value="{{ item['price'] }}">
-    </label><br>
+        <div class="form-group">
+          <label for="price">Price</label>
+          <input id="price" name="price" type="number" step="0.01" value="{{ item['price'] }}" required>
+        </div>
 
-    <label>Description:<br>
-      <textarea name="description">{{ item['description'] }}</textarea>
-    </label><br>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description">{{ item['description']|e }}</textarea>
+        </div>
 
-    <label>Current image:</label><br>
-    {% if item['image'] %}
-      <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="current image" style="max-width:200px;display:block;margin-bottom:8px;">
-    {% else %}
-      <div>No image</div>
-    {% endif %}
-    <label>Replace image:
-      <input type="file" name="image" accept="image/*">
-    </label><br>
+        <div class="form-group">
+          <label for="contact">Contact</label>
+          <input id="contact" name="contact" type="text" value="{{ item['contact']|e }}">
+        </div>
 
-    <label>Contact:
-      <input name="contact" value="{{ item['contact'] }}">
-    </label><br>
+        <div class="form-group">
+          <label for="payment">Payment</label>
+          <input id="payment" name="payment" type="text" value="{{ item['payment']|e }}">
+        </div>
 
-    <label>Payment:
-      <input name="payment" value="{{ item['payment'] }}">
-    </label><br>
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="available" {% if item['status']=='available' %}selected{% endif %}>available</option>
+            <option value="sold" {% if item['status']=='sold' %}selected{% endif %}>sold</option>
+            <option value="reserved" {% if item['status']=='reserved' %}selected{% endif %}>reserved</option>
+          </select>
+        </div>
 
-    <label>Status:
-      <select name="status">
-        <option value="available" {% if item['status']=='available' %}selected{% endif %}>available</option>
-        <option value="sold" {% if item['status']=='sold' %}selected{% endif %}>sold</option>
-      </select>
-    </label><br>
+        <div class="form-actions">
+          <button class="btn" type="submit">Save changes</button>
+          <a class="btn secondary" href="{{ url_for('my_listings') }}">Cancel</a>
+        </div>
+      </div>
 
-    <button type="submit">Save changes</button>
+      <div class="right-col" aria-hidden="false">
+        <div style="width:100%;text-align:left">
+          <div class="small-meta">Current image</div>
+          {% if item['image'] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="Current image" class="img-preview">
+          {% else %}
+            <div style="width:100%;max-width:300px;height:200px;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999">No image</div>
+          {% endif %}
+        </div>
+
+        <div style="width:100%">
+          <label for="image" class="small-meta">Replace image</label>
+          <input id="image" name="image" type="file" accept="image/*">
+        </div>
+
+        <div style="width:100%;text-align:left;">
+          <div class="small-meta">Tips</div>
+          <ul style="margin:6px 0 0 18px;color:#555">
+            <li>Use a clear photo of the item.</li>
+            <li>Include pickup location or meet-up details in description.</li>
+            <li>Keep price numeric (no currency symbol).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </form>
+</div>
 {% endblock %}
