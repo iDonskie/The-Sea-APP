@@ -44,6 +44,18 @@ SoftDesignProject/
 - Use scripts in `scripts/admin/` for admin management
 - Database maintenance scripts in `scripts/database/`
 
+### Quick User Management
+```bash
+# Manage users easily
+python scripts/admin/manage_users.py
+
+# Reset all passwords to "123"
+python scripts/admin/reset_all_passwords.py
+
+# Check all users
+python scripts/admin/check_users.py
+```
+
 ## 📝 Development
 
 - Test scripts available in `scripts/testing/`

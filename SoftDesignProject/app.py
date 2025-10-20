@@ -72,7 +72,7 @@ def validate_file_upload(file):
 
 
 def get_db_connection():
-    db_path = os.path.join(BASE_DIR, 'data', 'marketplace.db')
+    db_path = os.path.join(BASE_DIR, 'database', 'marketplace.db')
     # Add timeout and enable WAL mode for better concurrent access
     conn = sqlite3.connect(db_path, timeout=30.0)
     conn.row_factory = sqlite3.Row
