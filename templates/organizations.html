@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Organizations{% endblock %}
+
+{% block content %}
+<h1>Student Organizations</h1>
+<p>Browse and learn about student orgs.</p>
+
+<ul>
+    <li><strong>Org 1</strong> — Description / contact</li>
+    <li><strong>Org 2</strong> — Description / contact</li>
+    <li><strong>Org 3</strong> — Description / contact</li>
+</ul>
+
+<!-- Example card layout (optional, replace with your UI) -->
+<div class="org-cards">
+    <div class="card">
+        <h3>Org Name</h3>
+        <p>Short description</p>
+        <button>View</button>
+    </div>
+    <div class="card">
+        <h3>Org Name 2</h3>
+        <p>Short description</p>
+        <button>View</button>
+    </div>
+</div>
+{% endblock %}
