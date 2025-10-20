@@ -1,23 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .my-listings{max-width:800px;margin:18px auto;padding:12px;font-family:Segoe UI,Roboto,Arial;}
+  .my-listings h1{font-size:1.6rem;margin-bottom:8px;}
+  .my-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid #eee;border-radius:6px;margin-bottom:12px;}
+  .my-thumb{width:140px;flex-shrink:0;}
+  .my-thumb img{max-width:100%;border-radius:6px;border:1px solid #ddd;}
+  .my-body{flex:1;}
+  .my-title{font-weight:700;margin-bottom:6px;}
+  .my-desc{margin:6px 0;color:#222;}
+  .my-actions{margin-top:8px;display:flex;gap:8px;}
+  .btn{background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;}
+  .btn-danger{background:#e03e2d;}
+  @media(max-width:600px){ .my-item{flex-direction:column;} .my-thumb{width:100%} }
+</style>
+
+<div class="my-listings">
   <h1>My Listings</h1>
+
   {% if items %}
-    <ul>
-      {% for it in items %}
-        <li>
-          <strong>{{ it['item_name'] }}</strong> — ${{ it['price'] }}<br>
-          Status: {{ it['status'] or 'available' }}<br>
-          {% if it['image'] %}
-            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="Product image" style="max-width:200px;"><br>
+    {% for item in items %}
+      <div class="my-item">
+        <div class="my-thumb">
+          {% if item['image'] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="{{ item['item_name'] }}">
+          {% else %}
+            <img src="{{ url_for('static', filename='placeholder.png') }}" alt="No image">
           {% endif %}
-          <div>{{ it['description'] }}</div>
-          <div>Contact: {{ it['contact'] }}</div>
-          <div>Payment: {{ it['payment'] }}</div>
-          <a href="{{ url_for('edit_listing', item_id=it['item_id']) }}">Edit</a>
-        </li>
-      {% endfor %}
-    </ul>
+        </div>
+
+        <div class="my-body">
+          <div class="my-title">{{ item['item_name'] }} — {{ item['price']|php }}</div>
+          <div class="my-meta"><em>Status: {{ item['status'] or 'available' }}</em></div>
+
+          {% if item['description'] %}
+            <div class="my-desc">{{ item['description'] }}</div>
+          {% endif %}
+
+          <div>Contact: {{ item['contact'] }}</div>
+          <div>Payment: {{ item['payment'] }}</div>
+
+          <div class="my-actions">
+            <a class="btn" href="{{ url_for('edit_listing', item_id=item['item_id']) }}">Edit</a>
+            <form action="{{ url_for('delete_listing', item_id=item['item_id']) }}" method="post" style="display:inline">
+              <button class="btn btn-danger" type="submit" onclick="return confirm('Remove this listing?');">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
   {% else %}
-    <p>You have no listings yet.</p>
+    <p>No listings.</p>
   {% endif %}
+</div>
 {% endblock %}

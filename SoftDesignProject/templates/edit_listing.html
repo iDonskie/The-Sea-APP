@@ -1,30 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
   <h1>Edit Listing</h1>
-  <form method="POST" action="{{ url_for('edit_listing', item_id=item['item_id']) }}">
-    <label for="item_name">Item name:</label><br>
-    <input type="text" id="item_name" name="item_name" value="{{ item['item_name'] }}" required><br><br>
 
-    <label for="price">Price:</label><br>
-    <input type="number" step="0.01" id="price" name="price" value="{{ item['price'] }}" required><br><br>
+  <form method="post" enctype="multipart/form-data">
+    <label>Item name:
+      <input name="item_name" value="{{ item['item_name'] }}" required>
+    </label><br>
 
-    <label for="description">Description:</label><br>
-    <textarea id="description" name="description">{{ item['description'] }}</textarea><br><br>
+    <label>Price:
+      <input name="price" value="{{ item['price'] }}">
+    </label><br>
 
-    <label for="contact">Contact Info:</label><br>
-    <input type="text" id="contact" name="contact" value="{{ item['contact'] }}"><br><br>
+    <label>Description:<br>
+      <textarea name="description">{{ item['description'] }}</textarea>
+    </label><br>
 
-    <label for="payment">Payment Methods:</label><br>
-    <input type="text" id="payment" name="payment" value="{{ item['payment'] }}"><br><br>
+    <label>Current image:</label><br>
+    {% if item['image'] %}
+      <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="current image" style="max-width:200px;display:block;margin-bottom:8px;">
+    {% else %}
+      <div>No image</div>
+    {% endif %}
+    <label>Replace image:
+      <input type="file" name="image" accept="image/*">
+    </label><br>
 
-    <label for="status">Status:</label><br>
-    <select id="status" name="status">
-      <option value="available" {% if item['status']=='available' %}selected{% endif %}>Available</option>
-      <option value="reserved" {% if item['status']=='reserved' %}selected{% endif %}>Reserved</option>
-      <option value="sold" {% if item['status']=='sold' %}selected{% endif %}>Sold</option>
-      <option value="out of stock" {% if item['status']=='out of stock' %}selected{% endif %}>Out of Stock</option>
-    </select><br><br>
+    <label>Contact:
+      <input name="contact" value="{{ item['contact'] }}">
+    </label><br>
 
-    <button type="submit">Update Listing</button>
+    <label>Payment:
+      <input name="payment" value="{{ item['payment'] }}">
+    </label><br>
+
+    <label>Status:
+      <select name="status">
+        <option value="available" {% if item['status']=='available' %}selected{% endif %}>available</option>
+        <option value="sold" {% if item['status']=='sold' %}selected{% endif %}>sold</option>
+      </select>
+    </label><br>
+
+    <button type="submit">Save changes</button>
   </form>
 {% endblock %}

@@ -1,37 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .listing-list{max-width:900px;margin:18px auto;padding:0 12px;font-family:Segoe UI,Roboto,Arial;}
+  .listing-list h1{font-size:2rem;margin-bottom:6px;}
+  .listing-item{border-bottom:1px solid #eee;padding:14px 0;display:flex;gap:14px;align-items:flex-start;}
+  .listing-thumb{width:180px;flex-shrink:0;}
+  .listing-thumb img{max-width:100%;border-radius:6px;border:1px solid #ddd;}
+  .listing-body{flex:1;}
+  .listing-title{font-weight:700;font-size:1.05rem;margin-bottom:4px;}
+  .listing-meta{color:#555;font-size:0.9rem;margin-bottom:8px;}
+  .listing-desc{margin:8px 0;color:#222;}
+  .listing-actions{margin-top:8px;display:flex;gap:8px;align-items:center;}
+  .btn-primary{background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;}
+  .btn-link{background:none;border:none;color:#3b5998;padding:0;cursor:pointer;}
+  @media(max-width:640px){ .listing-item{flex-direction:column;} .listing-thumb{width:100%;} }
+</style>
+
+<div class="listing-list">
   <h1>Marketplace</h1>
   <p><a href="{{ url_for('add_item') }}">Add new item</a></p>
 
   {% if items %}
-    <ul>
-      {% for it in items %}
-        <li style="margin-bottom:18px;">
-          <strong>{{ it['item_name'] }}</strong> — ${{ it['price'] }}<br>
-          <em>Status: {{ it['status'] or 'available' }}</em><br>
-          <small>Seller: {{ it['seller_name'] or 'Unknown' }}</small><br>
-
+    {% for it in items %}
+      <div class="listing-item">
+        <div class="listing-thumb">
           {% if it['image'] %}
-            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="Product image" style="max-width:200px;display:block;margin-top:6px;"><br>
+            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="{{ it['item_name'] }}">
+          {% else %}
+            <img src="{{ url_for('static', filename='placeholder.png') }}" alt="No image">
           {% endif %}
+        </div>
+
+        <div class="listing-body">
+          <div class="listing-title">{{ it['item_name'] }} — {{ it['price']|php }}</div>
+          <div class="listing-meta">
+            <em>Status: {{ it['status'] or 'available' }}</em><br>
+            <small>Seller: {{ it['seller_name'] or it['student_id'] }}</small>
+          </div>
 
           {% if it['description'] %}
-            <div>{{ it['description'] }}</div>
+            <div class="listing-desc">{{ it['description'] }}</div>
           {% endif %}
-          <div>Contact: {{ it['contact'] }}</div>
-          <div>Payment: {{ it['payment'] }}</div>
 
-          {% if session.get('user_id') and session.get('user_id') != it['student_id'] %}
-            <a href="{{ url_for('chat_page', other_id=it['student_id']) }}" style="display:inline-block;margin-top:8px;padding:6px 10px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">Message seller</a>
-          {% elif session.get('user_id') and session.get('user_id') == it['student_id'] %}
-            <a href="{{ url_for('edit_listing', item_id=it['item_id']) }}" style="display:inline-block;margin-top:8px;">Edit</a>
-          {% else %}
-            <a href="{{ url_for('login') }}" style="display:inline-block;margin-top:8px;">Log in to message seller</a>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+          <div class="listing-actions">
+            {% if session.get('user_id') and session.get('user_id') == it['student_id'] %}
+              <a class="btn-primary" href="{{ url_for('edit_listing', item_id=it['item_id']) }}">Edit</a>
+              <form action="{{ url_for('delete_listing', item_id=it['item_id']) }}" method="post" style="display:inline">
+                <button class="btn-link" type="submit" onclick="return confirm('Remove this listing?');">Delete</button>
+              </form>
+            {% else %}
+              <a class="btn-primary" href="{{ url_for('chat_page', other_id=it['student_id']) }}">Message seller</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
   {% else %}
     <p>No items yet.</p>
   {% endif %}
+</div>
 {% endblock %}
