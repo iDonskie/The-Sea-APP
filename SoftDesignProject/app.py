@@ -276,20 +276,29 @@ def messages():
     if not user_id:
         flash("Please log in.")
         return redirect(url_for('login'))
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT s.student_id, s.name, MAX(m.last_msg) AS last_msg
+        SELECT s.student_id, s.name, m2.content AS last_msg, t.last_at
         FROM (
-            SELECT receiver_id AS other_id, created_at AS last_msg FROM messages WHERE sender_id=?
-            UNION ALL
-            SELECT sender_id   AS other_id, created_at AS last_msg FROM messages WHERE receiver_id=?
-        ) m
-        JOIN students s ON s.student_id = m.other_id
-        WHERE m.other_id != ?
-        GROUP BY s.student_id, s.name
-        ORDER BY last_msg DESC
-    """, (user_id, user_id, user_id))
+            SELECT other_id, MAX(last_msg) AS last_at
+            FROM (
+                SELECT receiver_id AS other_id, created_at AS last_msg FROM messages WHERE sender_id=?
+                UNION ALL
+                SELECT sender_id   AS other_id, created_at AS last_msg FROM messages WHERE receiver_id=?
+            )
+            GROUP BY other_id
+        ) t
+        JOIN messages m2 ON (
+            (m2.sender_id = ? AND m2.receiver_id = t.other_id AND m2.created_at = t.last_at)
+            OR
+            (m2.sender_id = t.other_id AND m2.receiver_id = ? AND m2.created_at = t.last_at)
+        )
+        JOIN students s ON s.student_id = t.other_id
+        WHERE t.other_id != ?
+        ORDER BY t.last_at DESC
+    """, (user_id, user_id, user_id, user_id, user_id))
     rows = cur.fetchall()
     convos = [dict(r) for r in rows]
     conn.close()

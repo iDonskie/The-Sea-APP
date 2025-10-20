@@ -1,9 +1,9 @@
-<!-- ...existing code... -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SEA - Student's Emporium for All</title>
+  <meta charset="utf-8" />
+  <title>SEA</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
 <body>
 <nav>
@@ -22,7 +22,150 @@
   {% endif %}
 </nav>
 <hr>
+
 {% block content %}{% endblock %}
+
+<!-- Chat widget (global, available on every page) -->
+<style>
+  .chat-widget{position:fixed;right:18px;bottom:18px;width:320px;max-height:420px;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:10px;overflow:hidden;font-family:Segoe UI,Roboto,Arial;z-index:9999;background:#fff;border:1px solid #e6e6e6;display:flex;flex-direction:column}
+  .chat-header{background:#007bff;color:#fff;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
+  .chat-header .title{font-weight:700;font-size:0.95rem}
+  .chat-body{flex:1;padding:10px;overflow:auto;background:#f9fbff}
+  .chat-message{margin-bottom:8px;max-width:80%;}
+  .chat-message.me{margin-left:auto;background:#007bff;color:#fff;padding:8px 10px;border-radius:10px;}
+  .chat-message.them{background:#fff;padding:8px 10px;border-radius:10px;border:1px solid #e6e6e6;color:#222;}
+  .chat-input{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}
+  .chat-input input{flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;margin-right:8px}
+  .chat-input button{background:#007bff;color:#fff;border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
+  .chat-minimized{position:fixed;right:18px;bottom:18px;background:#007bff;color:#fff;padding:10px 14px;border-radius:28px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:9999}
+  @media(max-width:420px){ .chat-widget{width:92%;right:4%;bottom:12px} }
+</style>
+
+<div id="chatMin" class="chat-minimized" style="display:none" onclick="toggleChat(true)">Chat</div>
+
+<div id="chatWidget" class="chat-widget" style="display:none" role="dialog" aria-label="Chat">
+  <div class="chat-header">
+    <div class="title" id="chatTitle">Chat</div>
+    <div>
+      <button onclick="toggleChat(false)" title="Minimize" style="background:transparent;border:0;color:#fff;cursor:pointer">_</button>
+      <button onclick="closeChat()" title="Close" style="background:transparent;border:0;color:#fff;cursor:pointer">×</button>
+    </div>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-input">
+    <input id="chatInput" placeholder="Type a message..." autocomplete="off">
+    <button id="chatSend">Send</button>
+  </div>
+</div>
+
+<script>
+  let currentChatId = null;
+  let chatPoll = null;
+  const CHAT_ME_ID = {{ session.get('user_id')|tojson }};
+
+  function _showChat(name){
+    document.getElementById('chatTitle').textContent = name || 'Chat';
+    document.getElementById('chatWidget').style.display = 'flex';
+    document.getElementById('chatMin').style.display = 'none';
+  }
+
+  function openChat(otherId, name){
+    if(!otherId) return;
+    currentChatId = Number(otherId);
+    localStorage.setItem('sea_chat', JSON.stringify({id: currentChatId, name: name || 'Chat'}));
+    _showChat(name);
+    loadMessages(true);
+    if(chatPoll) clearInterval(chatPoll);
+    chatPoll = setInterval(()=> loadMessages(false), 2500);
+    const input = document.getElementById('chatInput'); if(input) input.focus();
+  }
+
+  function closeChat(){
+    document.getElementById('chatWidget').style.display = 'none';
+    document.getElementById('chatMin').style.display = 'block';
+    if(chatPoll){ clearInterval(chatPoll); chatPoll = null; }
+    currentChatId = null;
+    localStorage.removeItem('sea_chat');
+  }
+
+  function toggleChat(open){
+    if(open){ document.getElementById('chatWidget').style.display='flex'; document.getElementById('chatMin').style.display='none'; }
+    else { document.getElementById('chatWidget').style.display='none'; document.getElementById('chatMin').style.display='block'; }
+  }
+
+  async function loadMessages(scrollToBottom=true){
+    if(!currentChatId) return;
+    try{
+      const res = await fetch(`/chat/${currentChatId}/messages`);
+      if(!res.ok) return;
+      const msgs = await res.json();
+      const body = document.getElementById('chatBody');
+      body.innerHTML = '';
+      msgs.forEach(m=>{
+        const el = document.createElement('div');
+        el.className = 'chat-message ' + (m.sender_id === CHAT_ME_ID ? 'me' : 'them');
+        el.textContent = m.content;
+        body.appendChild(el);
+      });
+      if(scrollToBottom) body.scrollTop = body.scrollHeight;
+    }catch(e){ console.error('loadMessages', e); }
+  }
+
+  function sendMessage(){
+    const textEl = document.getElementById('chatInput');
+    const text = (textEl.value || '').trim();
+    if(!text || !currentChatId) return;
+    fetch(`/chat/${currentChatId}/messages`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({content: text})
+    }).then(res=>{
+      if(res.ok){ textEl.value = ''; loadMessages(true); }
+      else res.text().then(t=> console.error('send failed', res.status, t));
+    }).catch(e=> console.error('send error', e));
+  }
+
+  // delegated handler: open widget and persist. allow normal navigation when href is a real link.
+  document.addEventListener('click', function(evt){
+    const el = evt.target.closest('.open-chat');
+    if(!el) return;
+    const href = el.getAttribute('href');
+    const other = el.getAttribute('data-other');
+    const name = el.getAttribute('data-name') || el.textContent.trim();
+    // persist + open widget
+    localStorage.setItem('sea_chat', JSON.stringify({id: other, name}));
+    openChat(other, name);
+    // only prevent default if link is inert (# or javascript)
+    if(!href || href === '#' || href.trim().toLowerCase().startsWith('javascript:')) {
+      evt.preventDefault();
+    }
+    // otherwise allow navigation (user will go to full chat page)
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // restore saved chat when switching pages
+    const saved = localStorage.getItem('sea_chat');
+    if(saved){
+      try{
+        const obj = JSON.parse(saved);
+        if(obj && obj.id){
+          currentChatId = Number(obj.id);
+          _showChat(obj.name || 'Chat');
+          loadMessages(true);
+          chatPoll = setInterval(()=> loadMessages(false), 2500);
+        }
+      }catch(e){}
+    }
+    const send = document.getElementById('chatSend');
+    const input = document.getElementById('chatInput');
+    if(send && input){
+      send.addEventListener('click', sendMessage);
+      input.addEventListener('keypress', function(e){ if(e.key === 'Enter') sendMessage(); });
+    }
+  });
+
+  window.addEventListener('beforeunload', ()=> { if(chatPoll) clearInterval(chatPoll); });
+</script>
+
 </body>
 </html>
-<!-- ...existing code... -->

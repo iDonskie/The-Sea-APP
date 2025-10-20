@@ -1,22 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Messages</h1>
+<style>
+  .messages-wrap{max-width:900px;margin:18px auto;padding:12px;font-family:Segoe UI, Roboto, Arial, sans-serif;}
+  .convo-list{list-style:none;padding:0;margin:0}
+  .convo-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:10px;background:#fff}
+  .avatar{width:48px;height:48px;border-radius:50%;background:#f0f0f0;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#666}
+  .btn-primary{background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none}
+</style>
 
-  <p>
+<div class="messages-wrap">
+  <h1>Messages</h1>
+  <div class="messages-nav">
     <a href="{{ url_for('conversations') }}">Conversations</a> |
     <a href="{{ url_for('marketplace') }}">Marketplace</a>
-  </p>
+  </div>
 
   {% if convos %}
-    <ul>
+    <ul class="convo-list">
       {% for c in convos %}
-        <li style="margin-bottom:10px;">
-          <a href="{{ url_for('chat_page', other_id=c['student_id']) }}">{{ c['name'] }}</a>
-          <small style="color:#666"> — last: {{ c['last_msg'] }}</small>
+        <li class="convo-item">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="avatar">{{ (c['name'][:1] if c['name'])|upper }}</div>
+            <div>
+              <!-- full chat page link + open-chat attributes -->
+              <div><a class="open-chat" href="{{ url_for('chat_page', other_id=c['student_id']) }}" data-other="{{ c['student_id'] }}" data-name="{{ c['name']|e }}">{{ c['name'] }}</a></div>
+              <div style="color:#666;font-size:0.9rem">last: {{ c['last_msg'] }}</div>
+            </div>
+          </div>
+
+          <div>
+            <a class="btn-primary open-chat" href="{{ url_for('chat_page', other_id=c['student_id']) }}" data-other="{{ c['student_id'] }}" data-name="{{ c['name']|e }}">Open chat</a>
+          </div>
         </li>
       {% endfor %}
     </ul>
   {% else %}
     <p>No conversations yet.</p>
   {% endif %}
+</div>
 {% endblock %}
