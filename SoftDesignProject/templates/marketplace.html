@@ -1,67 +1,941 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  .listing-list{max-width:900px;margin:18px auto;padding:0 12px;font-family:Segoe UI,Roboto,Arial;}
-  .listing-item{border-bottom:1px solid #eee;padding:14px 0;display:flex;gap:14px;align-items:flex-start;}
-  .listing-thumb{width:180px;flex-shrink:0;}
-  .listing-thumb img{max-width:100%;border-radius:6px;border:1px solid #ddd;}
-  .listing-body{flex:1;}
-  .listing-title{font-weight:700;font-size:1.05rem;margin-bottom:4px;}
-  .listing-meta{color:#555;font-size:0.9rem;margin-bottom:8px;}
-  .listing-desc{margin:8px 0;color:#222;}
-  .listing-actions{margin-top:8px;display:flex;gap:8px;align-items:center;}
-  .btn-primary{background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;display:inline-block}
-  .btn-link{background:none;border:none;color:#3b5998;padding:0;cursor:pointer;}
-  @media(max-width:640px){ .listing-item{flex-direction:column;} .listing-thumb{width:100%;} }
+  body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; }
+  
+  /* Header Styles */
+  .marketplace-header {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .marketplace-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #212529;
+    margin: 0 0 10px 0;
+  }
+  
+  .marketplace-subtitle {
+    font-size: 1.1rem;
+    color: #6c757d;
+    margin: 0 0 30px 0;
+  }
+  
+  .login-to-sell-btn {
+    background: #28a745;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.2s;
+  }
+  
+  .login-to-sell-btn:hover {
+    background: #218838;
+    color: white;
+    text-decoration: none;
+  }
+  
+  /* Browse Section */
+  .browse-section {
+    padding: 20px;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .browse-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    color: #6c757d;
+    font-size: 0.95rem;
+  }
+  
+  .browse-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .search-bar {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 20px;
+    border: 1px solid #ced4da;
+    border-radius: 25px;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 20px;
+  }
+  
+  .search-bar:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+  
+  /* Category Filter */
+  .category-filter {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .category-btn {
+    padding: 8px 20px;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  
+  .category-btn:hover,
+  .category-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+    text-decoration: none;
+  }
+  
+  /* Products Grid */
+  .products-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+  
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+  }
+  
+  /* Product Card */
+  .product-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  
+  .product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  .product-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: #f8f9fa;
+  }
+  
+  /* Image Carousel Styles */
+  .image-carousel {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+  }
+  
+  .carousel-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .carousel-container .product-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .carousel-container .product-image.active {
+    opacity: 1;
+  }
+  
+  .carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color 0.2s;
+  }
+  
+  .carousel-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  
+  .carousel-btn.prev {
+    left: 10px;
+  }
+  
+  .carousel-btn.next {
+    right: 10px;
+  }
+  
+  .image-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+  }
+  
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .dot.active {
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  /* Modal/Lightbox Styles */
+  .image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .image-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .modal-image {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-info {
+    background: white;
+    padding: 15px 20px;
+    margin-top: 10px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+  }
+  
+  .modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+    color: #333;
+  }
+  
+  .modal-price {
+    font-size: 1.1rem;
+    color: #28a745;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  .modal-controls {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    pointer-events: none;
+  }
+  
+  .modal-nav-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .modal-nav-btn:disabled:hover {
+    transform: none;
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 30px;
+    color: white;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.5);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  
+  .modal-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+  }
+  
+  .modal-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+    justify-content: center;
+  }
+  
+  .modal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-dot.active {
+    background: white;
+    border-color: white;
+    transform: scale(1.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-dot:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(1.1);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .product-content {
+    padding: 15px;
+  }
+  
+  .product-category-tag {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    border: 1px solid #bbdefb;
+  }
+  
+  .category-books { background: #e8f5e8; color: #2e7d32; border-color: #c8e6c9; } /* Books - green */
+  .category-electronics { background: #fff3e0; color: #f57c00; border-color: #ffcc02; } /* Electronics - orange */
+  .category-supplies { background: #f3e5f5; color: #7b1fa2; border-color: #e1bee7; } /* Supplies - purple */
+  .category-appliances { background: #e0f2f1; color: #00695c; border-color: #b2dfdb; } /* Appliances - teal */
+  .category-clothing { background: #fce4ec; color: #c2185b; border-color: #f8bbd9; } /* Clothing - pink */
+  .category-other { background: #f5f5f5; color: #616161; border-color: #e0e0e0; } /* Other - grey */
+  
+  .product-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+  }
+  
+  .product-seller {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+  }
+  
+  .product-description {
+    font-size: 0.9rem;
+    color: #495057;
+    margin: 0 0 15px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .product-price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #28a745;
+    margin: 0 0 15px 0;
+  }
+  
+  .product-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 15px;
+  }
+  
+  .product-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .message-btn {
+    flex: 1;
+    background: #212529;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.2s;
+  }
+  
+  .message-btn:hover {
+    background: #343a40;
+    color: white;
+    text-decoration: none;
+  }
+  
+  .edit-btn {
+    background: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  
+  .delete-btn {
+    background: #dc3545;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  
+  .status-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .no-items {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+    font-size: 1.1rem;
+  }
+  
+  @media (max-width: 768px) {
+    .marketplace-title { font-size: 2rem; }
+    .category-filter { justify-content: flex-start; overflow-x: auto; padding-bottom: 10px; }
+    .products-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+  }
 </style>
 
-<div class="listing-list">
-  <h1>Marketplace</h1>
-  <p><a href="{{ url_for('add_item') }}">Add new item</a></p>
-
-  {% if items %}
-    {% for it in items %}
-      <div class="listing-item">
-        <div class="listing-thumb">
-          {% if it['image'] %}
-            <img src="{{ url_for('static', filename='uploads/' ~ it['image']) }}" alt="{{ it['item_name'] }}">
-          {% else %}
-            <img src="{{ url_for('static', filename='placeholder.png') }}" alt="No image">
-          {% endif %}
-        </div>
-
-        <div class="listing-body">
-          <div class="listing-title">{{ it['item_name'] }} — {{ it['price']|php }}</div>
-          <div class="listing-meta">
-            <em>Status: {{ it['status'] or 'available' }}</em><br>
-            <small>Seller: {{ it['seller_name'] or it['student_id'] }}</small>
-          </div>
-
-          {% if it['description'] %}
-            <div class="listing-desc">{{ it['description'] }}</div>
-          {% endif %}
-
-          <div class="listing-actions">
-            {% if session.get('user_id') and session.get('user_id') == it['student_id'] %}
-              <a class="btn-primary" href="{{ url_for('edit_listing', item_id=it['item_id']) }}">Edit</a>
-              <form action="{{ url_for('delete_listing', item_id=it['item_id']) }}" method="post" style="display:inline">
-                <button class="btn-link" type="submit" onclick="return confirm('Remove this listing?');">Delete</button>
-              </form>
-            {% else %}
-              <!-- inert link (href="#") so JS only opens the small widget -->
-              <a class="btn-primary open-chat"
-                 href="#"
-                 data-other="{{ it['student_id'] }}"
-                 data-name="{{ (it['seller_name'] or 'Seller')|e }}">
-                Message seller
-              </a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    {% endfor %}
+<div class="marketplace-header">
+  <h1 class="marketplace-title">Student Marketplace</h1>
+  <p class="marketplace-subtitle">Buy and sell pre-loved items within the campus community</p>
+  {% if session.get('user_id') %}
+    <a href="{{ url_for('add_item') }}" class="login-to-sell-btn">Add Item to Sell</a>
   {% else %}
-    <p>No items yet.</p>
+    <a href="{{ url_for('login') }}" class="login-to-sell-btn">Login to Sell</a>
   {% endif %}
 </div>
+
+<div class="browse-section">
+  <div class="browse-text">
+    <span>🛒</span>
+    {% if session.get('user_id') and current_user %}
+      <span>Welcome back, {{ current_user.name }}! Browse and shop items from your fellow students.</span>
+    {% elif session.get('user_id') %}
+      <span>Welcome back! Browse and shop items from your fellow students.</span>
+    {% else %}
+      <span>Browsing as guest.</span>
+      <span>Login with your Student ID to message sellers and post items for sale</span>
+    {% endif %}
+  </div>
+  
+  <div style="text-align: center;">
+    <input type="text" class="search-bar" placeholder="Search for items..." id="searchInput" onkeyup="filterProducts()">
+  </div>
+  
+  <div class="category-filter">
+    <a href="#" class="category-btn active" onclick="filterByCategory('all')">All</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('books')">Books</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('electronics')">Electronics</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('supplies')">Supplies</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('appliances')">Appliances</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('clothing')">Clothing</a>
+    <a href="#" class="category-btn" onclick="filterByCategory('other')">Other</a>
+  </div>
+</div>
+
+<div class="products-container">
+  {% if items %}
+    <div class="products-grid" id="productsGrid">
+      {% for it in items %}
+        <div class="product-card" data-category="{{ it.get('category', 'other')|lower }}" data-title="{{ it['item_name']|lower }}" data-description="{{ (it['description'] or '')|lower }}">
+          <div class="status-badge">{{ (it['status'] or 'Available')|title }}</div>
+          
+          {% if it['images'] and it['images']|length > 0 %}
+            <div class="image-carousel" data-item-id="{{ it['item_id'] }}">
+              <div class="carousel-container" data-item-id="{{ it['item_id'] }}" data-image-index="0" onclick="openImageModalFromData(this)" style="cursor: pointer;">
+                {% for img in it['images'] %}
+                  <img src="{{ url_for('static', filename='uploads/' ~ img['image_filename']) }}" 
+                       alt="{{ it['item_name'] }}" 
+                       class="product-image {{ 'active' if loop.first else '' }}"
+                       data-index="{{ loop.index0 }}">
+                {% endfor %}
+              </div>
+              
+              {% if it['images']|length > 1 %}
+                <button class="carousel-btn prev" data-item-id="{{ it['item_id'] }}" data-direction="-1" onclick="event.stopPropagation(); changeImageFromData(this)">‹</button>
+                <button class="carousel-btn next" data-item-id="{{ it['item_id'] }}" data-direction="1" onclick="event.stopPropagation(); changeImageFromData(this)">›</button>
+                
+                <div class="image-dots">
+                  {% for img in it['images'] %}
+                    <span class="dot {{ 'active' if loop.first else '' }}" 
+                          data-item-id="{{ it['item_id'] }}" data-image-index="{{ loop.index0 }}"
+                          onclick="event.stopPropagation(); showImageFromData(this)"></span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% elif it['primary_image'] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ it['primary_image']) }}" 
+                 alt="{{ it['item_name'] }}" 
+                 class="product-image" 
+                 data-item-id="{{ it['item_id'] }}" data-image-index="0"
+                 onclick="openImageModalFromData(this)" 
+                 style="cursor: pointer;">
+          {% else %}
+            <div class="product-image" style="display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d;">
+              No Image
+            </div>
+          {% endif %}
+          
+          <div class="product-content">
+            <div class="product-category-tag category-{{ it.get('category', 'other') }}">{{ (it.get('category', 'other')|title) }}</div>
+            <h3 class="product-title">{{ it['item_name'] }}</h3>
+            <p class="product-seller">{{ it['seller_name'] or ('Student #' ~ it['student_id']) }}</p>
+            
+            {% if it['description'] %}
+              <p class="product-description">{{ it['description'] }}</p>
+            {% endif %}
+            
+            <div class="product-price">{{ it['price']|php }}</div>
+            
+            <div class="product-meta">
+              <span>📞 {{ it.get('contact', 'Contact via messages') }}</span>
+            </div>
+            
+            <div class="product-actions">
+              {% if session.get('user_id') and session.get('user_id') == it['student_id'] %}
+                <div style="text-align: center; margin-bottom: 8px; font-size: 12px; color: #28a745; font-weight: 600;">
+                  📝 Your Listing
+                </div>
+                <a href="{{ url_for('edit_listing', item_id=it['item_id']) }}" class="edit-btn">Edit</a>
+                <form action="{{ url_for('delete_listing', item_id=it['item_id']) }}" method="post" style="display: inline; flex: 1;">
+                  <button class="delete-btn" type="submit" onclick="return confirm('Remove this listing?');" style="width: 100%;">Delete</button>
+                </form>
+              {% else %}
+                {% if session.get('user_id') %}
+                  <a class="message-btn open-chat"
+                     href="#"
+                     data-other="{{ it['student_id'] }}"
+                     data-name="{{ (it['seller_name'] or 'Seller')|e }}">
+                    💬 Message Seller
+                  </a>
+                {% else %}
+                  <a href="{{ url_for('login') }}" class="message-btn">Login to Message</a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-items">
+      <p>No items available yet.</p>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('add_item') }}" class="login-to-sell-btn">Be the first to add an item!</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="image-modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeImageModal()">&times;</span>
+    
+    <div class="modal-controls">
+      <button class="modal-nav-btn" id="modalPrevBtn" onclick="modalPrevImage()">‹</button>
+      <button class="modal-nav-btn" id="modalNextBtn" onclick="modalNextImage()">›</button>
+    </div>
+    
+    <img id="modalImage" class="modal-image" alt="">
+    
+    <div class="modal-info">
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <p class="modal-price" id="modalPrice"></p>
+    </div>
+    
+    <div class="modal-dots" id="modalDots"></div>
+  </div>
+</div>
+
+<script>
+  let currentCategory = 'all';
+  
+  function filterByCategory(category) {
+    currentCategory = category;
+    
+    // Update active button
+    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    filterProducts();
+  }
+  
+  function filterProducts() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.product-card');
+    
+    cards.forEach(card => {
+      const category = card.getAttribute('data-category');
+      const title = card.getAttribute('data-title');
+      const description = card.getAttribute('data-description');
+      
+      const matchesCategory = currentCategory === 'all' || category === currentCategory;
+      const matchesSearch = searchTerm === '' || 
+                           title.includes(searchTerm) || 
+                           description.includes(searchTerm);
+      
+      if (matchesCategory && matchesSearch) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+  
+  // Prevent default link behavior for category buttons
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => e.preventDefault());
+  });
+  
+  // Image Carousel Functions
+  const carouselStates = {};
+  
+  function initCarousels() {
+    document.querySelectorAll('.image-carousel').forEach(carousel => {
+      const itemId = carousel.getAttribute('data-item-id');
+      carouselStates[itemId] = { currentIndex: 0 };
+    });
+  }
+  
+  function changeImage(itemId, direction) {
+    const carousel = document.querySelector(`[data-item-id="${itemId}"]`);
+    const images = carousel.querySelectorAll('.product-image');
+    const dots = carousel.querySelectorAll('.dot');
+    
+    if (images.length <= 1) return;
+    
+    // Remove active class from current image and dot
+    images[carouselStates[itemId].currentIndex].classList.remove('active');
+    if (dots.length > 0) {
+      dots[carouselStates[itemId].currentIndex].classList.remove('active');
+    }
+    
+    // Calculate new index
+    carouselStates[itemId].currentIndex += direction;
+    if (carouselStates[itemId].currentIndex >= images.length) {
+      carouselStates[itemId].currentIndex = 0;
+    } else if (carouselStates[itemId].currentIndex < 0) {
+      carouselStates[itemId].currentIndex = images.length - 1;
+    }
+    
+    // Add active class to new image and dot
+    images[carouselStates[itemId].currentIndex].classList.add('active');
+    if (dots.length > 0) {
+      dots[carouselStates[itemId].currentIndex].classList.add('active');
+    }
+  }
+  
+  function showImage(itemId, index) {
+    const carousel = document.querySelector(`[data-item-id="${itemId}"]`);
+    const images = carousel.querySelectorAll('.product-image');
+    const dots = carousel.querySelectorAll('.dot');
+    
+    // Remove active class from current image and dot
+    images[carouselStates[itemId].currentIndex].classList.remove('active');
+    if (dots.length > 0) {
+      dots[carouselStates[itemId].currentIndex].classList.remove('active');
+    }
+    
+    // Set new index
+    carouselStates[itemId].currentIndex = index;
+    
+    // Add active class to new image and dot
+    images[carouselStates[itemId].currentIndex].classList.add('active');
+    if (dots.length > 0) {
+      dots[carouselStates[itemId].currentIndex].classList.add('active');
+    }
+  }
+  
+  // Initialize carousels when page loads
+  document.addEventListener('DOMContentLoaded', initCarousels);
+  
+  // Modal functionality
+  let modalData = {};
+  let currentModalIndex = 0;
+  
+  // Helper functions for data-attribute-based handlers
+  function openImageModalFromData(element) {
+    const itemId = parseInt(element.dataset.itemId);
+    const imageIndex = parseInt(element.dataset.imageIndex);
+    openImageModal(itemId, imageIndex);
+  }
+  
+  function changeImageFromData(element) {
+    const itemId = parseInt(element.dataset.itemId);
+    const direction = parseInt(element.dataset.direction);
+    changeImage(itemId, direction);
+  }
+  
+  function showImageFromData(element) {
+    const itemId = parseInt(element.dataset.itemId);
+    const imageIndex = parseInt(element.dataset.imageIndex);
+    showImage(itemId, imageIndex);
+  }
+  
+  function openImageModal(itemId, startIndex = 0) {
+    // Find the item data
+    const productCard = document.querySelector(`[data-item-id="${itemId}"]`).closest('.product-card');
+    const title = productCard.querySelector('.product-title').textContent;
+    const price = productCard.querySelector('.product-price').textContent;
+    
+    // Get all images for this item
+    const images = Array.from(productCard.querySelectorAll('.product-image')).map(img => ({
+      src: img.src,
+      alt: img.alt
+    }));
+    
+    // Store modal data
+    modalData = {
+      itemId: itemId,
+      title: title,
+      price: price,
+      images: images
+    };
+    
+    currentModalIndex = startIndex;
+    
+    // Update modal content
+    updateModalContent();
+    
+    // Show modal
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('active');
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }
+  
+  function modalPrevImage() {
+    if (currentModalIndex > 0) {
+      currentModalIndex--;
+      updateModalContent();
+    }
+  }
+  
+  function modalNextImage() {
+    if (currentModalIndex < modalData.images.length - 1) {
+      currentModalIndex++;
+      updateModalContent();
+    }
+  }
+  
+  function modalGoToImage(index) {
+    currentModalIndex = index;
+    updateModalContent();
+  }
+  
+  function updateModalContent() {
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalPrice = document.getElementById('modalPrice');
+    const modalDots = document.getElementById('modalDots');
+    const prevBtn = document.getElementById('modalPrevBtn');
+    const nextBtn = document.getElementById('modalNextBtn');
+    
+    // Update image
+    const currentImage = modalData.images[currentModalIndex];
+    modalImage.src = currentImage.src;
+    modalImage.alt = currentImage.alt;
+    
+    // Update info
+    modalTitle.textContent = modalData.title;
+    modalPrice.textContent = modalData.price;
+    
+    // Update navigation buttons
+    prevBtn.disabled = currentModalIndex === 0;
+    nextBtn.disabled = currentModalIndex === modalData.images.length - 1;
+    
+    // Update dots (only show if multiple images)
+    if (modalData.images.length > 1) {
+      modalDots.innerHTML = '';
+      modalData.images.forEach((_, index) => {
+        const dot = document.createElement('span');
+        dot.className = `modal-dot ${index === currentModalIndex ? 'active' : ''}`;
+        dot.onclick = () => modalGoToImage(index);
+        modalDots.appendChild(dot);
+      });
+      modalDots.style.display = 'flex';
+    } else {
+      modalDots.style.display = 'none';
+    }
+    
+    // Hide navigation buttons if only one image
+    if (modalData.images.length <= 1) {
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+    } else {
+      prevBtn.style.display = 'flex';
+      nextBtn.style.display = 'flex';
+    }
+  }
+  
+  // Close modal when clicking outside the image
+  document.getElementById('imageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeImageModal();
+    }
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('imageModal');
+    if (modal.classList.contains('active')) {
+      switch(e.key) {
+        case 'Escape':
+          closeImageModal();
+          break;
+        case 'ArrowLeft':
+          modalPrevImage();
+          break;
+        case 'ArrowRight':
+          modalNextImage();
+          break;
+      }
+    }
+  });
+</script>
 {% endblock %}

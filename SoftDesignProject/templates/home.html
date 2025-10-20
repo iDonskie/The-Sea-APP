@@ -1,18 +1,373 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="0.8" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+    opacity: 0.1;
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 0 0 20px 0;
+    line-height: 1.2;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .hero-subtitle {
+    font-size: 1.3rem;
+    margin: 0 0 40px 0;
+    opacity: 0.9;
+    font-weight: 300;
+  }
+  
+  .hero-description {
+    font-size: 1.1rem;
+    margin: 0 0 50px 0;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+  
+  /* Features Section */
+  .features-section {
+    padding: 80px 20px;
+    background: #f8f9fa;
+  }
+  
+  .features-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+  }
+  
+  .section-subtitle {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin: 0 0 60px 0;
+  }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 40px;
+    margin-bottom: 60px;
+  }
+  
+  .feature-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #e9ecef;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+  }
+  
+  .marketplace-icon { color: #28a745; }
+  .community-icon { color: #fd7e14; }
+  
+  .feature-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+  }
+  
+  .feature-description {
+    color: #6c757d;
+    line-height: 1.6;
+    margin-bottom: 25px;
+  }
+  
+  /* Action Buttons */
+  .cta-section {
+    padding: 60px 20px 80px;
+    background: white;
+    text-align: center;
+  }
+  
+  .cta-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+    color: white;
+    text-decoration: none;
+  }
+  
+  .btn-secondary {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-secondary:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    text-decoration: none;
+  }
+  
+  .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  }
+  
+  .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+    color: white;
+    text-decoration: none;
+  }
+  
+  /* Stats Section */
+  .stats-section {
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: #74b9ff;
+  }
+  
+  .stat-label {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-title { font-size: 2.5rem; }
+    .hero-subtitle { font-size: 1.1rem; }
+    .features-grid { grid-template-columns: 1fr; gap: 30px; }
+    .cta-buttons { flex-direction: column; align-items: center; }
+    .btn { width: 100%; max-width: 300px; justify-content: center; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  
+  @media (max-width: 480px) {
+    .hero-title { font-size: 2rem; }
+    .section-title { font-size: 2rem; }
+    .stats-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="hero-content">
+    <h1 class="hero-title">SEA</h1>
+    <h2 class="hero-subtitle">Student's Emporium for All</h2>
+    <p class="hero-description">
+      Your campus marketplace and community hub. Connect with fellow students, 
+      discover amazing deals, and trade items safely within your campus community.
+    </p>
     
-  <h1>SEA - Student's Emporium for All</h1>
-  <p>Dive into student life with SEA.</p>
+    {% if session.get('user_id') %}
+      <div class="cta-buttons">
+        <a href="{{ url_for('marketplace') }}" class="btn btn-primary">
+          🛍️ Explore Marketplace
+        </a>
+        <a href="{{ url_for('add_item') }}" class="btn btn-success">
+          ➕ Sell Something
+        </a>
+      </div>
+    {% else %}
+      <div class="cta-buttons">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">
+          🚀 Get Started
+        </a>
+        <a href="{{ url_for('marketplace') }}" class="btn btn-secondary">
+          👀 Browse Marketplace
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
 
-  <a href="{{ url_for('marketplace') }}">
-    <button>Explore Marketplace</button>
-  </a>
+<!-- Features Section -->
+<div class="features-section">
+  <div class="features-container">
+    <h2 class="section-title">Everything You Need</h2>
+    <p class="section-subtitle">Built by students, designed for student life</p>
+    
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon marketplace-icon">🛒</span>
+        <h3 class="feature-title">Student Marketplace</h3>
+        <p class="feature-description">
+          Buy and sell textbooks, electronics, dorm essentials, and more. 
+          Find great deals from fellow students on campus with our easy-to-use platform.
+        </p>
+        <a href="{{ url_for('marketplace') }}" class="btn btn-secondary">Browse Items</a>
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon community-icon">💬</span>
+        <h3 class="feature-title">Direct Messaging</h3>
+        <p class="feature-description">
+          Connect directly with sellers through our built-in messaging system. 
+          Share photos, ask questions, and negotiate deals securely.
+        </p>
+        {% if session.get('user_id') %}
+          <a href="{{ url_for('messages') }}" class="btn btn-secondary">View Messages</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn btn-secondary">Login to Message</a>
+        {% endif %}
+      </div>
+      
+      <div class="feature-card">
+        <span class="feature-icon marketplace-icon">🔒</span>
+        <h3 class="feature-title">Safe & Secure</h3>
+        <p class="feature-description">
+          Trade safely within your campus community. All users are verified students, 
+          and our messaging system keeps your communications secure.
+        </p>
+        <a href="{{ url_for('marketplace') }}" class="btn btn-secondary">Start Trading</a>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <a href="{{ url_for('services') }}">
-    <button>Browse Services</button>
-  </a>
+<!-- Stats Section -->
+<div class="stats-section">
+  <h2 class="section-title" style="margin-bottom: 50px; color: white;">Join Our Growing Community</h2>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-number">500+</div>
+      <div class="stat-label">Active Students</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">1,200+</div>
+      <div class="stat-label">Items Sold</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">5,000+</div>
+      <div class="stat-label">Messages Sent</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">95%</div>
+      <div class="stat-label">Happy Users</div>
+    </div>
+  </div>
+</div>
 
-  <a href="{{ url_for('register') }}">
-    <button>Register Now</button>
-  </a>
+<!-- Call to Action Section -->
+<div class="cta-section">
+  <h2 class="section-title">Ready to Get Started?</h2>
+  <p class="section-subtitle">Join thousands of students already using SEA</p>
+  
+  {% if not session.get('user_id') %}
+    <div class="cta-buttons">
+      <a href="{{ url_for('register') }}" class="btn btn-primary">
+        📝 Register Now
+      </a>
+      <a href="{{ url_for('login') }}" class="btn btn-secondary">
+        🔑 Already Have Account?
+      </a>
+    </div>
+  {% else %}
+    <div class="cta-buttons">
+      <a href="{{ url_for('add_item') }}" class="btn btn-primary">
+        💰 Start Selling
+      </a>
+      <a href="{{ url_for('marketplace') }}" class="btn btn-success">
+        🛍️ Keep Shopping
+      </a>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

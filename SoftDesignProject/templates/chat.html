@@ -1,46 +1,327 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Chat with {{ other['name'] }}</h2>
+<style>
+.chat-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  overflow: hidden;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
 
-<div id="chat-window" style="border:1px solid #ccc;padding:10px;height:350px;overflow:auto;background:#fff;">
+.chat-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f1f1f1;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.message-wrapper {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.message-wrapper.own {
+  flex-direction: row-reverse;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+  line-height: 1.4;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-wrapper.own .message-bubble {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+}
+
+.message-wrapper:not(.own) .message-bubble {
+  background: white;
+  color: #333;
+  border: 1px solid #e9ecef;
+}
+
+.message-time {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.message-wrapper.own .message-time {
+  color: #888;
+  text-align: right;
+}
+
+.chat-input-area {
+  padding: 20px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-form {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 25px;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.message-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.send-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.image-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.image-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.message-image {
+  max-width: 250px;
+  max-height: 200px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.message-image:hover {
+  transform: scale(1.02);
+}
+
+.message-controls {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: rgba(0,0,0,0.8);
+  border-radius: 12px;
+  padding: 4px;
+  display: none;
+  z-index: 100;
+  gap: 4px;
+}
+
+.message-bubble:hover .message-controls {
+  display: flex;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.control-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+</style>
+
+<div class="chat-container">
+  <div class="chat-header">
+    💬 Chat with {{ other['name'] }}
+  </div>
+  
+  <div id="chat-window" class="chat-messages">
+    <!-- Messages will be loaded here -->
+  </div>
+  
+  <div class="chat-input-area">
+    <form id="chat-form" class="chat-form">
+      <input type="text" id="msg-input" class="message-input" placeholder="Type your message..." autocomplete="off" required>
+      <button type="submit" class="send-btn" title="Send Message">➤</button>
+    </form>
+    
+    <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="sendImage(this)">
+    <button type="button" class="image-btn" onclick="document.getElementById('image-input').click()" title="Send Image">📷</button>
+  </div>
 </div>
 
-<form id="chat-form" onsubmit="return sendMessage();">
-  <input type="text" id="msg-input" placeholder="Type a message" style="width:78%;" autocomplete="off" required>
-  <button type="submit">Send</button>
-</form>
-
 <script>
-const otherId = {{ other['student_id'] }};
-const meId = {{ session.get('user_id', 0) }};
+// Get data from data attributes (HTML uses kebab-case, JS uses camelCase)
+const otherId = document.body.dataset.otherId ? parseInt(document.body.dataset.otherId) : null;
+const meId = document.body.dataset.userId ? parseInt(document.body.dataset.userId) : 0;
 const pollInterval = 1500;
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
 }
 
-function addMessage(msg) {
+function addMessage(msg, shouldScroll = true) {
   const win = document.getElementById('chat-window');
-  const side = msg.sender_id === meId ? 'right' : 'left';
+  const isOwn = msg.sender_id === meId;
+  
   const wrapper = document.createElement('div');
-  wrapper.style.textAlign = side;
-  wrapper.style.margin = '8px 0';
+  wrapper.className = `message-wrapper ${isOwn ? 'own' : ''}`;
+  
   const bubble = document.createElement('div');
-  bubble.style.display = 'inline-block';
-  bubble.style.padding = '8px';
-  bubble.style.borderRadius = '8px';
-  bubble.style.maxWidth = '75%';
-  bubble.style.background = msg.sender_id === meId ? '#dcf8c6' : '#f0f0f0';
-  bubble.innerHTML = escapeHtml(msg.content);
+  bubble.className = 'message-bubble';
+  bubble.id = `message-bubble-${msg.id}`;
+  
+  // Add message controls for own messages
+  if (isOwn) {
+    const controls = document.createElement('div');
+    controls.className = 'message-controls';
+    
+    if (msg.message_type !== 'image') {
+      const editBtn = document.createElement('button');
+      editBtn.innerHTML = '✏️';
+      editBtn.className = 'control-btn';
+      editBtn.title = 'Edit message';
+      editBtn.onclick = () => editMessage(msg.id, msg.content);
+      controls.appendChild(editBtn);
+    }
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.className = 'control-btn';
+    deleteBtn.title = 'Delete message';
+    deleteBtn.onclick = () => deleteMessage(msg.id);
+    controls.appendChild(deleteBtn);
+    
+    bubble.appendChild(controls);
+  }
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.id = `message-content-${msg.id}`;
+  
+  // Handle image messages
+  if (msg.message_type === 'image' && msg.image_attachment) {
+    contentDiv.innerHTML = `
+      <div style="margin-bottom: 8px; font-weight: 500;">${escapeHtml(msg.content)}</div>
+      <img src="/static/uploads/${msg.image_attachment}" 
+           alt="Shared image" 
+           class="message-image"
+           onclick="openImagePreview('${msg.image_attachment}')">
+    `;
+  } else {
+    contentDiv.innerHTML = escapeHtml(msg.content);
+  }
+  
+  bubble.appendChild(contentDiv);
+  
+  // Add timestamp
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'message-time';
+  // Format the timestamp nicely
+  const date = new Date(msg.created_at);
+  timeDiv.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  
   wrapper.appendChild(bubble);
-  const meta = document.createElement('div');
-  meta.style.fontSize = '0.8em';
-  meta.style.color = '#666';
-  meta.innerText = msg.created_at;
-  wrapper.appendChild(meta);
+  wrapper.appendChild(timeDiv);
   win.appendChild(wrapper);
-  win.scrollTop = win.scrollHeight;
+  
+  // No auto-scrolling - user controls scroll position
 }
+
+let lastMessageId = 0;
 
 async function fetchMessages() {
   try {
@@ -48,28 +329,227 @@ async function fetchMessages() {
     if (!res.ok) return;
     const msgs = await res.json();
     const win = document.getElementById('chat-window');
-    win.innerHTML = '';
-    for (const m of msgs) addMessage(m);
+    
+    // First load - show all messages
+    if (lastMessageId === 0) {
+      win.innerHTML = '';
+      for (const m of msgs) {
+        addMessage(m, false);
+        lastMessageId = Math.max(lastMessageId, m.id);
+      }
+    } else {
+      // Subsequent loads - only add new messages
+      const newMessages = msgs.filter(m => m.id > lastMessageId);
+      for (const m of newMessages) {
+        addMessage(m, false);
+        lastMessageId = m.id;
+      }
+    }
   } catch (e) {
     console.error(e);
   }
 }
 
-async function sendMessage() {
-  const input = document.getElementById('msg-input');
-  const content = input.value.trim();
-  if (!content) return false;
-  await fetch(`/chat/${otherId}/messages`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({content})
-  });
-  input.value = '';
-  fetchMessages();
+async function sendMessage(event) {
+  try {
+    alert('sendMessage function called!');
+    // Always prevent default form submission
+    if (event) {
+      event.preventDefault();
+    }
+    
+    console.log('sendMessage() called');
+    
+    const input = document.getElementById('msg-input');
+    const content = input.value.trim();
+    
+    console.log('Message content:', content);
+    
+    if (!content) {
+      console.log('Empty content, not sending');
+      return false;
+    }
+    
+    if (!otherId) {
+      console.error('otherId is not set:', otherId);
+      alert('Chat error: recipient not found');
+      return false;
+    }
+    
+    console.log(`Sending message to /chat/${otherId}/messages:`, content);
+    const response = await fetch(`/chat/${otherId}/messages`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: content})
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (response.ok) {
+      console.log('Message sent successfully');
+      input.value = '';
+      fetchMessages(); // Refresh messages without auto-scroll
+    } else {
+      const errorText = await response.text();
+      console.error('Send message failed:', response.status, errorText);
+      alert(`Failed to send message: ${response.status} - ${errorText}`);
+    }
+  } catch (error) {
+    alert('ERROR in sendMessage: ' + error.message);
+    console.error('Send message error:', error);
+  }
+  
   return false;
 }
 
-fetchMessages();
-setInterval(fetchMessages, pollInterval);
+console.log('sendMessage function defined successfully');
+
+// Add event listener to form submit button
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('chat-form');
+  const submitButton = form.querySelector('button[type="submit"]');
+  const input = document.getElementById('msg-input');
+  
+  function sendTextMessage() {
+    const content = input.value.trim();
+    
+    if (!content) {
+      return;
+    }
+    
+    // Disable input while sending
+    input.disabled = true;
+    submitButton.disabled = true;
+    
+    // Send the message
+    fetch(`/chat/${otherId}/messages`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: content})
+    })
+    .then(response => {
+      if (response.ok || response.status === 201) {
+        input.value = '';
+        fetchMessages();
+      } else {
+        alert('Failed to send message: ' + response.status);
+      }
+    })
+    .catch(error => {
+      alert('Network error: ' + error.message);
+    })
+    .finally(() => {
+      // Re-enable input
+      input.disabled = false;
+      submitButton.disabled = false;
+      input.focus();
+    });
+  }
+  
+  // Add click event to submit button
+  submitButton.addEventListener('click', function(e) {
+    e.preventDefault();
+    sendTextMessage();
+  });
+  
+  // Also add submit event to form
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    sendTextMessage();
+  });
+  
+  // Send on Enter key
+  input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendTextMessage();
+    }
+  });
+});
+
+async function sendImage(inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  
+  const formData = new FormData();
+  formData.append('image', file);
+  
+  try {
+    const response = await fetch(`/chat/${otherId}/messages`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (response.ok) {
+      inputEl.value = ''; // Clear the file input
+      fetchMessages();
+    } else {
+      alert('Failed to send image');
+    }
+  } catch (error) {
+    console.error('Error sending image:', error);
+    alert('Error sending image');
+  }
+}
+
+function editMessage(messageId, currentContent) {
+  const newContent = prompt('Edit your message:', currentContent);
+  if (newContent === null || newContent.trim() === '') return;
+  
+  fetch(`/chat/message/${messageId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: newContent.trim() })
+  }).then(res => {
+    if (res.ok) {
+      fetchMessages();
+    } else {
+      res.json().then(data => alert(data.error || 'Failed to edit message'));
+    }
+  }).catch(e => {
+    console.error('Edit message error:', e);
+    alert('Error editing message');
+  });
+}
+
+function deleteMessage(messageId) {
+  if (!confirm('Are you sure you want to delete this message?')) return;
+  
+  fetch(`/chat/message/${messageId}`, {
+    method: 'DELETE'
+  }).then(res => {
+    if (res.ok) {
+      fetchMessages();
+    } else {
+      res.json().then(data => alert(data.error || 'Failed to delete message'));
+    }
+  }).catch(e => {
+    console.error('Delete message error:', e);
+    alert('Error deleting message');
+  });
+}
+
+function openImagePreview(filename) {
+  // Create a simple image preview modal
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.8); z-index: 10000; 
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  `;
+  
+  const img = document.createElement('img');
+  img.src = `/static/uploads/${filename}`;
+  img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 8px;';
+  
+  modal.appendChild(img);
+  document.body.appendChild(modal);
+  
+  modal.onclick = () => document.body.removeChild(modal);
+}
+
+fetchMessages(); // Load initial messages
+setInterval(fetchMessages, pollInterval); // Auto-refresh without auto-scroll
 </script>
 {% endblock %}

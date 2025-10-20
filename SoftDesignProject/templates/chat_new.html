@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.chat-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.chat-header {
+  background: #007bff;
+  color: white;
+  padding: 15px 20px;
+  font-weight: bold;
+}
+
+.chat-messages {
+  height: 400px;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.message {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.message.own {
+  flex-direction: row-reverse;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.message.own .message-bubble {
+  background: #007bff;
+  color: white;
+  margin-left: 10px;
+}
+
+.message:not(.own) .message-bubble {
+  background: white;
+  border: 1px solid #e1e8ed;
+  margin-right: 10px;
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 5px;
+}
+
+.message-controls {
+  display: none;
+  position: absolute;
+  top: -25px;
+  right: 5px;
+  background: white;
+  border-radius: 15px;
+  padding: 3px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.message:hover .message-controls {
+  display: block;
+}
+
+.message-controls button {
+  background: none;
+  border: none;
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.message-controls button:hover {
+  background: #f0f0f0;
+}
+
+.deleted-message {
+  font-style: italic;
+  opacity: 0.6;
+  background: #f5f5f5 !important;
+  color: #666 !important;
+}
+
+.chat-input-area {
+  padding: 20px;
+  background: white;
+  border-top: 1px solid #e1e8ed;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.message-input {
+  flex: 1;
+  border: 1px solid #e1e8ed;
+  border-radius: 20px;
+  padding: 10px 15px;
+  resize: none;
+  max-height: 100px;
+  min-height: 40px;
+}
+
+.send-btn, .image-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn:hover, .image-btn:hover {
+  background: #0056b3;
+}
+
+.image-preview {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+</style>
+
+<div class="chat-container">
+  <div class="chat-header">
+    💬 Chat with {{ other.name }}
+  </div>
+  
+  <div id="messages-container" class="chat-messages">
+    <!-- Messages will be loaded here -->
+  </div>
+  
+  <div class="chat-input-area">
+    <div class="input-group">
+      <textarea id="messageInput" class="message-input" placeholder="Type a message..." rows="1"></textarea>
+      <input type="file" id="imageInput" accept="image/*" style="display: none;">
+      <button class="image-btn" onclick="document.getElementById('imageInput').click()" title="Send Image">
+        📷
+      </button>
+      <button class="send-btn" id="sendButton" title="Send Message">
+        ➤
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; width: 400px;">
+    <h3>Edit Message</h3>
+    <textarea id="editInput" style="width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 5px; padding: 10px;"></textarea>
+    <div style="margin-top: 15px; text-align: right;">
+      <button onclick="cancelEdit()" style="margin-right: 10px; padding: 8px 16px; background: #ccc; border: none; border-radius: 5px;">Cancel</button>
+      <button onclick="saveEdit()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 5px;">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global variables
+const otherId = {{ other_id }};
+const currentUserId = {{ user_id }};
+let editingMessageId = null;
+let messages = [];
+
+console.log('Chat initialized - otherId:', otherId, 'currentUserId:', currentUserId);
+
+// Send text message
+async function sendMessage() {
+    alert('sendMessage called!');
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+    
+    if (!content) {
+        return;
+    }
+    
+    if (!otherId) {
+        alert('Chat error: recipient not found');
+        return;
+    }
+    
+    try {
+        console.log('About to send request to:', `/api/chat/${otherId}/send`);
+        console.log('Sending content:', content);
+        
+        const response = await fetch(`/api/chat/${otherId}/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: content,
+                type: 'text'
+            })
+        });
+        
+        console.log('Got response:', response);
+        
+        if (response.ok) {
+            const result = await response.json();
+            input.value = '';
+            input.style.height = 'auto';
+            loadMessages();
+        } else {
+            const error = await response.text();
+            alert(`Failed to send message: ${response.status} - ${error}`);
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+}
+
+// Send image
+async function sendImage(file) {
+    console.log('Sending image:', file.name, 'Size:', file.size, 'Type:', file.type);
+    
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 5MB.');
+        return;
+    }
+    
+    // Check file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Please use PNG, JPG, or GIF.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        console.log('Uploading to:', `/api/chat/${otherId}/send`);
+        const response = await fetch(`/api/chat/${otherId}/send`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('Upload response status:', response.status);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Upload successful:', result);
+            document.getElementById('imageInput').value = '';
+            loadMessages();
+        } else {
+            const errorText = await response.text();
+            console.error('Failed to send image:', response.status, errorText);
+            alert(`Failed to send image: ${response.status} - ${errorText}`);
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        alert('Network error: ' + error.message);
+    }
+}
+
+// Load messages
+async function loadMessages() {
+    try {
+        const response = await fetch(`/api/chat/${otherId}/messages`);
+        if (response.ok) {
+            messages = await response.json();
+            displayMessages();
+        }
+    } catch (error) {
+        console.error('Error loading messages:', error);
+    }
+}
+
+// Display messages
+function displayMessages() {
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+    
+    messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.sender_id === currentUserId ? 'own' : ''}`;
+        messageDiv.setAttribute('data-message-id', msg.id);
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        
+        if (msg.deleted) {
+            bubble.className += ' deleted-message';
+            bubble.innerHTML = '<em>This message was deleted</em>';
+        } else if (msg.type === 'image' && msg.image_url) {
+            bubble.innerHTML = `<img src="/static/uploads/${msg.image_url}" class="image-preview" alt="Image">`;
+        } else {
+            bubble.textContent = msg.content;
+        }
+        
+        // Add controls for own messages
+        if (msg.sender_id === currentUserId && !msg.deleted) {
+            const controls = document.createElement('div');
+            controls.className = 'message-controls';
+            controls.innerHTML = `
+                <button onclick="editMessage(${msg.id}, '${msg.content.replace(/'/g, "\\'")}')">✏️</button>
+                <button onclick="deleteMessage(${msg.id})">🗑️</button>
+            `;
+            bubble.appendChild(controls);
+        }
+        
+        const time = document.createElement('div');
+        time.className = 'message-time';
+        time.textContent = new Date(msg.created_at).toLocaleString();
+        
+        messageDiv.appendChild(bubble);
+        messageDiv.appendChild(time);
+        container.appendChild(messageDiv);
+    });
+    
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+
+// Edit message
+function editMessage(messageId, currentContent) {
+    editingMessageId = messageId;
+    document.getElementById('editInput').value = currentContent;
+    document.getElementById('editModal').style.display = 'block';
+}
+
+// Cancel edit
+function cancelEdit() {
+    document.getElementById('editModal').style.display = 'none';
+    editingMessageId = null;
+}
+
+// Save edit
+async function saveEdit() {
+    const newContent = document.getElementById('editInput').value.trim();
+    
+    if (!newContent) {
+        alert('Message cannot be empty');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/chat/message/${editingMessageId}/edit`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: newContent
+            })
+        });
+        
+        if (response.ok) {
+            cancelEdit();
+            loadMessages();
+        } else {
+            alert('Failed to edit message');
+        }
+    } catch (error) {
+        console.error('Error editing message:', error);
+        alert('Network error');
+    }
+}
+
+// Delete message
+async function deleteMessage(messageId) {
+    if (!confirm('Delete this message?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/chat/message/${messageId}/delete`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            loadMessages();
+        } else {
+            alert('Failed to delete message');
+        }
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        alert('Network error');
+    }
+}
+
+// Event listeners
+// Auto-resize textarea
+document.getElementById('messageInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+
+// Send on Enter (but Shift+Enter for new line)
+document.getElementById('messageInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Image upload handler
+document.getElementById('imageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        sendImage(file);
+    }
+});
+
+// Send button handler
+const sendBtn = document.getElementById('sendButton');
+console.log('Send button element:', sendBtn);
+
+if (sendBtn) {
+    sendBtn.addEventListener('click', function() {
+        alert('Button clicked, calling sendMessage...');
+        try {
+            sendMessage();
+        } catch (error) {
+            alert('ERROR in sendMessage: ' + error.message);
+            console.error('sendMessage error:', error);
+        }
+    });
+    console.log('Event listener added to send button');
+} else {
+    console.error('Send button not found!');
+    alert('ERROR: Send button not found!');
+}
+
+// Initial load and auto-refresh
+loadMessages();
+setInterval(loadMessages, 2000); // Refresh every 2 seconds
+</script>
+
+{% endblock %}

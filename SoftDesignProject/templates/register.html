@@ -1,22 +1,351 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Register</h1>
-  <form method="POST" action="{{ url_for('register') }}">
-    <label for="name">Full Name:</label><br>
-    <input type="text" id="name" name="name" required><br><br>
-    <label for="email">Email:</label><br>
-    <input type="email" id="email" name="email" required><br><br>
-    <label for="password">Password:</label><br>
-    <input type="password" id="password" name="password" required><br><br>
-    <button type="submit">Register</button>
-  </form>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul>
-        {% for message in messages %}
-          <li>{{ message }}</li>
+<style>
+  .auth-page {
+    min-height: calc(100vh - 80px);
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .auth-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="0.8" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+    opacity: 0.1;
+  }
+  
+  .auth-container {
+    position: relative;
+    z-index: 2;
+    background: white;
+    padding: 50px 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 450px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .auth-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .auth-logo {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  
+  .auth-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 10px 0;
+  }
+  
+  .auth-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+  
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+  
+  .form-group {
+    position: relative;
+  }
+  
+  .form-label {
+    display: block;
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    box-sizing: border-box;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #28a745;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .form-input:hover {
+    border-color: #ced4da;
+    background: white;
+  }
+  
+  .auth-button {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+  }
+  
+  .auth-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+  }
+  
+  .auth-button:active {
+    transform: translateY(0);
+  }
+  
+  .auth-divider {
+    text-align: center;
+    margin: 30px 0;
+    position: relative;
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+  
+  .auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e9ecef;
+  }
+  
+  .auth-divider span {
+    background: white;
+    padding: 0 20px;
+  }
+  
+  .auth-link {
+    text-align: center;
+  }
+  
+  .auth-link a {
+    color: #28a745;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  
+  .auth-link a:hover {
+    color: #20c997;
+    text-decoration: underline;
+  }
+  
+  .alert {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .alert.success {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+  }
+  
+  .alert ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  
+  .alert li {
+    margin: 0;
+  }
+  
+  .form-hint {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+  
+  .benefits {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 25px;
+  }
+  
+  .benefits-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 0 15px 0;
+    text-align: center;
+  }
+  
+  .benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .benefits-list li {
+    padding: 8px 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .benefits-list li::before {
+    content: '✓';
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  
+  @media (max-width: 480px) {
+    .auth-container {
+      padding: 30px 25px;
+      margin: 20px;
+    }
+    
+    .auth-title {
+      font-size: 1.6rem;
+    }
+    
+    .auth-logo {
+      font-size: 2.5rem;
+    }
+    
+    .benefits {
+      margin-top: 20px;
+      padding: 15px;
+    }
+  }
+</style>
+
+<div class="auth-page">
+  <div class="auth-container">
+    <div class="auth-header">
+      <div class="auth-logo">SEA</div>
+      <h1 class="auth-title">Join SEA Today</h1>
+      <p class="auth-subtitle">Create your account to start buying and selling with fellow students</p>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert {% if category == 'success' %}success{% endif %}">
+            {{ message }}
+          </div>
         {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      
+      <div class="form-group">
+        <label for="name" class="form-label">👤 Full Name</label>
+        <input 
+          type="text" 
+          id="name" 
+          name="name" 
+          class="form-input" 
+          placeholder="Enter your full name"
+          required
+          autocomplete="name"
+        >
+        <div class="form-hint">This will be displayed to other students</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="email" class="form-label">📧 Student Email</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          class="form-input" 
+          placeholder="Enter your student email address"
+          required
+          autocomplete="email"
+        >
+        <div class="form-hint">Use your official student email address</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password" class="form-label">🔒 Password</label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          class="form-input" 
+          placeholder="Create a secure password"
+          required
+          autocomplete="new-password"
+        >
+        <div class="form-hint">Choose a strong password with at least 6 characters</div>
+      </div>
+      
+      <button type="submit" class="auth-button">
+        🎉 Create My Account
+      </button>
+    </form>
+    
+    <div class="benefits">
+      <h3 class="benefits-title">🌟 What you'll get with SEA:</h3>
+      <ul class="benefits-list">
+        <li>Access to student-exclusive marketplace</li>
+        <li>Direct messaging with buyers and sellers</li>
+        <li>Safe transactions within your campus</li>
+        <li>Post unlimited items for sale</li>
+        <li>Find great deals from fellow students</li>
       </ul>
-    {% endif %}
-  {% endwith %}
+    </div>
+    
+    <div class="auth-divider">
+      <span>Already have an account?</span>
+    </div>
+    
+    <div class="auth-link">
+      <a href="{{ url_for('login') }}">Sign in to your account →</a>
+    </div>
+  </div>
+</div>
 {% endblock %}

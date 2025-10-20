@@ -15,6 +15,54 @@
   .btn{background:#007bff;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none;border:0;cursor:pointer}
   .btn.secondary{background:#f3f4f6;color:#111;border:1px solid #e0e0e0}
   .form-actions{margin-top:14px;display:flex;gap:10px;justify-content:flex-start}
+  
+  .image-upload-container{width:100%;}
+  .image-preview-container{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:8px;
+  }
+  .image-preview-item{
+    position:relative;
+    width:80px;
+    height:80px;
+    border:1px solid #ddd;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .image-preview-item img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  .image-preview-item .remove-btn{
+    position:absolute;
+    top:2px;
+    right:2px;
+    background:rgba(255,0,0,0.8);
+    color:white;
+    border:none;
+    border-radius:50%;
+    width:18px;
+    height:18px;
+    font-size:12px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .image-preview-item .primary-badge{
+    position:absolute;
+    bottom:2px;
+    left:2px;
+    background:rgba(0,123,255,0.8);
+    color:white;
+    font-size:10px;
+    padding:1px 4px;
+    border-radius:2px;
+  }
+  
   @media(max-width:840px){ .form-grid{grid-template-columns:1fr;} .right-col{align-items:stretch} }
 </style>
 
@@ -50,6 +98,18 @@
         </div>
 
         <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" name="category" required>
+            <option value="books" {% if item.get('category')=='books' %}selected{% endif %}>Books</option>
+            <option value="electronics" {% if item.get('category')=='electronics' %}selected{% endif %}>Electronics</option>
+            <option value="supplies" {% if item.get('category')=='supplies' %}selected{% endif %}>Supplies</option>
+            <option value="appliances" {% if item.get('category')=='appliances' %}selected{% endif %}>Appliances</option>
+            <option value="clothing" {% if item.get('category')=='clothing' %}selected{% endif %}>Clothing</option>
+            <option value="other" {% if item.get('category')=='other' or not item.get('category') %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="status">Status</label>
           <select id="status" name="status">
             <option value="available" {% if item['status']=='available' %}selected{% endif %}>available</option>
@@ -66,24 +126,43 @@
 
       <div class="right-col" aria-hidden="false">
         <div style="width:100%;text-align:left">
-          <div class="small-meta">Current image</div>
-          {% if item['image'] %}
-            <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="Current image" class="img-preview">
+          <div class="small-meta">Current images</div>
+          {% if item['images'] and item['images']|length > 0 %}
+            <div class="current-images" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              {% for img in item['images'] %}
+                <div style="position: relative;">
+                  <img src="{{ url_for('static', filename='uploads/' ~ img['image_filename']) }}" 
+                       alt="Current image {{ loop.index }}" 
+                       style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
+                  {% if img['is_primary'] %}
+                    <span style="position: absolute; bottom: 2px; left: 2px; background: rgba(0,123,255,0.8); color: white; font-size: 10px; padding: 1px 4px; border-radius: 2px;">Main</span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% elif item.get('image') %}
+            <!-- Fallback for old single image system -->
+            <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="Current image" class="img-preview" style="margin-bottom: 12px;">
           {% else %}
-            <div style="width:100%;max-width:300px;height:200px;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999">No image</div>
+            <div style="width:100%;max-width:300px;height:120px;background:#fafafa;border:1px dashed #e3e3e3;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;margin-bottom: 12px;">No images</div>
           {% endif %}
         </div>
 
         <div style="width:100%">
-          <label for="image" class="small-meta">Replace image</label>
-          <input id="image" name="image" type="file" accept="image/*">
+          <label for="images" class="small-meta">Replace with new images</label>
+          <div class="image-upload-container">
+            <input id="images" name="images" type="file" accept="image/*" multiple>
+            <div class="image-preview-container" id="imagePreviewContainer"></div>
+            <div class="small-meta" style="margin-top: 6px;">You can select up to 5 images. The first will be the main photo.</div>
+          </div>
         </div>
 
         <div style="width:100%;text-align:left;">
           <div class="small-meta">Tips</div>
           <ul style="margin:6px 0 0 18px;color:#555">
-            <li>Use a clear photo of the item.</li>
-            <li>Include pickup location or meet-up details in description.</li>
+            <li>Use clear photos from different angles.</li>
+            <li>First image will be the main photo.</li>
+            <li>Include pickup location in description.</li>
             <li>Keep price numeric (no currency symbol).</li>
           </ul>
         </div>
@@ -91,4 +170,63 @@
     </div>
   </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('images');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    let selectedFiles = [];
+
+    imageInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        
+        // Limit to 5 images
+        if (files.length > 5) {
+            alert('You can only upload up to 5 images');
+            return;
+        }
+
+        selectedFiles = files;
+        updatePreview();
+        updateFileInput();
+    });
+
+    function createPreviewItem(file, index) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'image-preview-item';
+            previewItem.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <button type="button" class="remove-btn" onclick="removeImage(${index})">&times;</button>
+                ${index === 0 ? '<span class="primary-badge">Main</span>' : ''}
+            `;
+            previewContainer.appendChild(previewItem);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.removeImage = function(index) {
+        selectedFiles.splice(index, 1);
+        updatePreview();
+        updateFileInput();
+    };
+
+    function updatePreview() {
+        previewContainer.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            createPreviewItem(file, index);
+        });
+    }
+
+    function updateFileInput() {
+        // Create a new DataTransfer to update the file input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dt.items.add(file);
+        });
+        imageInput.files = dt.files;
+    }
+});
+</script>
 {% endblock %}
