@@ -104,7 +104,7 @@ def generate_verification_code():
     return ''.join(random.choices(string.digits, k=6))
 
 def send_verification_email(email, code, name):
-    """Send verification code via email"""
+    """Send verification code via email with timeout handling"""
     try:
         msg = Message(
             subject="Verify Your Email - SEA Marketplace",
@@ -145,10 +145,15 @@ SEA Marketplace Team
 </body>
 </html>
         """
-        mail.send(msg)
+        # Send email with timeout protection
+        with mail.connect() as conn:
+            conn.send(msg)
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        # Log error but don't crash - user can still use resend button
+        print(f"Error sending email to {email}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def require_login():
