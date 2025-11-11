@@ -12,7 +12,8 @@ import secrets
 import random
 import string
 import threading
-import resend
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,9 +27,9 @@ app.config['SESSION_COOKIE_SECURE'] = is_production  # True for HTTPS in product
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Resend Email Configuration
-resend.api_key = os.environ.get('RESEND_API_KEY')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+# SendGrid Email Configuration
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'theseaapp@gmail.com')
 
 # Simple in-memory rate limiting (use Redis in production)
 login_attempts = {}
@@ -99,7 +100,7 @@ def generate_verification_code():
     return ''.join(random.choices(string.digits, k=6))
 
 def send_verification_email_async(email, code, name):
-    """Background thread for sending email using Resend"""
+    """Background thread for sending email using SendGrid"""
     try:
         html_content = f"""
 <html>
@@ -122,15 +123,16 @@ def send_verification_email_async(email, code, name):
 </html>
         """
         
-        params = {
-            "from": SENDER_EMAIL,
-            "to": [email],
-            "subject": "Verify Your Email - SEA Marketplace",
-            "html": html_content,
-        }
+        message = Mail(
+            from_email=SENDER_EMAIL,
+            to_emails=email,
+            subject='Verify Your Email - SEA Marketplace',
+            html_content=html_content
+        )
         
-        resend.Emails.send(params)
-        print(f"✓ Email sent successfully to {email} via Resend")
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        print(f"✓ Email sent successfully to {email} via SendGrid (Status: {response.status_code})")
     except Exception as e:
         print(f"✗ Error sending email to {email}: {str(e)}")
 
