@@ -1479,6 +1479,21 @@ def admin_logs():
     
     return render_template('admin/logs.html', logs=logs)
 
+@app.route('/debug/users')
+def debug_users():
+    """Temporary route to view registered users - DELETE AFTER USE"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT student_id, name, email, email_verified FROM students ORDER BY student_id')
+    users = cur.fetchall()
+    conn.close()
+    
+    html = "<h1>Registered Users</h1><ul>"
+    for user in users:
+        html += f"<li>ID {user[0]}: {user[1]} - {user[2]} (Verified: {bool(user[3])})</li>"
+    html += "</ul>"
+    html += f"<p>Total: {len(users)} users</p>"
+    return html
 
 if __name__ == "__main__":
     app.run(debug=True)
