@@ -12,6 +12,7 @@ import hashlib
 import secrets
 import random
 import string
+import threading
 
 # Load environment variables from .env file
 load_dotenv()
@@ -103,14 +104,15 @@ def generate_verification_code():
     """Generate a 6-digit verification code"""
     return ''.join(random.choices(string.digits, k=6))
 
-def send_verification_email(email, code, name):
-    """Send verification code via email with timeout handling"""
-    try:
-        msg = Message(
-            subject="Verify Your Email - SEA Marketplace",
-            recipients=[email]
-        )
-        msg.body = f"""
+def send_verification_email_async(app, email, code, name):
+    """Background thread for sending email"""
+    with app.app_context():
+        try:
+            msg = Message(
+                subject="Verify Your Email - SEA Marketplace",
+                recipients=[email]
+            )
+            msg.body = f"""
 Hello {name},
 
 Thank you for registering at SEA - Student's Emporium for All!
@@ -124,8 +126,8 @@ If you didn't create an account, please ignore this email.
 
 Best regards,
 SEA Marketplace Team
-        """
-        msg.html = f"""
+            """
+            msg.html = f"""
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
@@ -144,17 +146,19 @@ SEA Marketplace Team
     </div>
 </body>
 </html>
-        """
-        # Send email with timeout protection
-        with mail.connect() as conn:
-            conn.send(msg)
-        return True
-    except Exception as e:
-        # Log error but don't crash - user can still use resend button
-        print(f"Error sending email to {email}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
+            """
+            mail.send(msg)
+            print(f"✓ Email sent successfully to {email}")
+        except Exception as e:
+            print(f"✗ Error sending email to {email}: {str(e)}")
+
+def send_verification_email(email, code, name):
+    """Send verification code via email asynchronously"""
+    # Start email sending in background thread
+    thread = threading.Thread(target=send_verification_email_async, args=(app, email, code, name))
+    thread.daemon = True
+    thread.start()
+    return True  # Return immediately, don't wait for email
 
 def require_login():
     """Check if user is logged in and session is valid"""
@@ -307,21 +311,14 @@ def register():
             conn.commit()
             user_id = cur.lastrowid
             
-            # Send verification email
-            email_sent = send_verification_email(email, verification_code, name)
+            # Send verification email asynchronously (returns immediately)
+            send_verification_email(email, verification_code, name)
             
-            if email_sent:
-                # Store user_id in session for verification
-                session['pending_verification_user_id'] = user_id
-                session['pending_verification_email'] = email
-                flash("Registration successful! Please check your email for the verification code.", "success")
-                return redirect(url_for('verify_email'))
-            else:
-                # If email fails, still allow registration but notify user
-                flash("Registration successful but we couldn't send the verification email. You can request a new code.", "warning")
-                session['pending_verification_user_id'] = user_id
-                session['pending_verification_email'] = email
-                return redirect(url_for('verify_email'))
+            # Store user_id in session for verification
+            session['pending_verification_user_id'] = user_id
+            session['pending_verification_email'] = email
+            flash("Registration successful! Please check your email for the verification code.", "success")
+            return redirect(url_for('verify_email'))
                 
         except sqlite3.IntegrityError:
             # Email already exists - delete old account and create new one
@@ -333,7 +330,7 @@ def register():
             conn.commit()
             user_id = cur.lastrowid
             
-            email_sent = send_verification_email(email, verification_code, name)
+            send_verification_email(email, verification_code, name)
             session['pending_verification_user_id'] = user_id
             session['pending_verification_email'] = email
             flash("Account updated! Please check your email for the verification code.", "success")
