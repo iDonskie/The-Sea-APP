@@ -324,8 +324,20 @@ def register():
                 return redirect(url_for('verify_email'))
                 
         except sqlite3.IntegrityError:
-            flash("Email already registered. Please use a different email.")
-            return render_template('register.html')
+            # Email already exists - delete old account and create new one
+            cur.execute("DELETE FROM students WHERE email = ?", (email,))
+            cur.execute("""
+                INSERT INTO students (name, email, password, email_verified, verification_code, verification_code_expires) 
+                VALUES (?, ?, ?, 0, ?, ?)
+            """, (name, email, password_hash, verification_code, code_expires))
+            conn.commit()
+            user_id = cur.lastrowid
+            
+            email_sent = send_verification_email(email, verification_code, name)
+            session['pending_verification_user_id'] = user_id
+            session['pending_verification_email'] = email
+            flash("Account updated! Please check your email for the verification code.", "success")
+            return redirect(url_for('verify_email'))
         except Exception as e:
             print(f"Registration error: {e}")
             flash("An error occurred during registration. Please try again.")
