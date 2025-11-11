@@ -1482,18 +1482,108 @@ def admin_logs():
 @app.route('/debug/users')
 def debug_users():
     """Temporary route to view registered users - DELETE AFTER USE"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT student_id, name, email, email_verified FROM students ORDER BY student_id')
-    users = cur.fetchall()
-    conn.close()
-    
-    html = "<h1>Registered Users</h1><ul>"
-    for user in users:
-        html += f"<li>ID {user[0]}: {user[1]} - {user[2]} (Verified: {bool(user[3])})</li>"
-    html += "</ul>"
-    html += f"<p>Total: {len(users)} users</p>"
-    return html
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('SELECT student_id, name, email, email_verified FROM students ORDER BY student_id')
+        users = cur.fetchall()
+        conn.close()
+        
+        html = "<h1>Registered Users</h1><ul>"
+        for user in users:
+            html += f"<li>ID {user[0]}: {user[1]} - {user[2]} (Verified: {bool(user[3])})</li>"
+        html += "</ul>"
+        html += f"<p>Total: {len(users)} users</p>"
+        return html
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p><p>Database might not be initialized. Visit /init-db to create tables.</p>"
+
+@app.route('/init-db')
+def init_database():
+    """Initialize database tables - DELETE AFTER USE"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Create students table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS students (
+                student_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                email_verified INTEGER DEFAULT 0,
+                verification_code TEXT,
+                verification_code_expires DATETIME,
+                is_admin INTEGER DEFAULT 0
+            )
+        """)
+        
+        # Create items table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS items (
+                item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER,
+                item_name TEXT NOT NULL,
+                price REAL NOT NULL,
+                description TEXT,
+                image TEXT,
+                contact TEXT,
+                payment TEXT,
+                status TEXT DEFAULT 'available',
+                category TEXT DEFAULT 'other',
+                moderation_status TEXT DEFAULT 'approved',
+                FOREIGN KEY (student_id) REFERENCES students(student_id)
+            )
+        """)
+        
+        # Create messages table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER,
+                receiver_id INTEGER,
+                message TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                read INTEGER DEFAULT 0,
+                edited_at DATETIME,
+                FOREIGN KEY (sender_id) REFERENCES students(student_id),
+                FOREIGN KEY (receiver_id) REFERENCES students(student_id)
+            )
+        """)
+        
+        # Create item_images table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS item_images (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                image_filename TEXT NOT NULL,
+                is_primary INTEGER DEFAULT 0,
+                upload_order INTEGER DEFAULT 0,
+                FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Create admin_actions table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS admin_actions (
+                action_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER,
+                action_type TEXT,
+                target_type TEXT,
+                target_id INTEGER,
+                details TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES students(student_id)
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+        
+        return "<h1>Success!</h1><p>Database tables created successfully. Now try registering again.</p><p><a href='/register'>Go to Register</a></p>"
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p>"
 
 if __name__ == "__main__":
     app.run(debug=True)
