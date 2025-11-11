@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -13,6 +12,7 @@ import secrets
 import random
 import string
 import threading
+import resend
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,15 +26,9 @@ app.config['SESSION_COOKIE_SECURE'] = is_production  # True for HTTPS in product
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Email Configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')  # Your email
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Your app password
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@sea-marketplace.com')
-
-mail = Mail(app)
+# Resend Email Configuration
+resend.api_key = os.environ.get('RESEND_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 # Simple in-memory rate limiting (use Redis in production)
 login_attempts = {}
@@ -104,30 +98,10 @@ def generate_verification_code():
     """Generate a 6-digit verification code"""
     return ''.join(random.choices(string.digits, k=6))
 
-def send_verification_email_async(app, email, code, name):
-    """Background thread for sending email"""
-    with app.app_context():
-        try:
-            msg = Message(
-                subject="Verify Your Email - SEA Marketplace",
-                recipients=[email]
-            )
-            msg.body = f"""
-Hello {name},
-
-Thank you for registering at SEA - Student's Emporium for All!
-
-Your verification code is: {code}
-
-Please enter this code on the verification page to complete your registration.
-This code will expire in 15 minutes.
-
-If you didn't create an account, please ignore this email.
-
-Best regards,
-SEA Marketplace Team
-            """
-            msg.html = f"""
+def send_verification_email_async(email, code, name):
+    """Background thread for sending email using Resend"""
+    try:
+        html_content = f"""
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
@@ -146,16 +120,24 @@ SEA Marketplace Team
     </div>
 </body>
 </html>
-            """
-            mail.send(msg)
-            print(f"✓ Email sent successfully to {email}")
-        except Exception as e:
-            print(f"✗ Error sending email to {email}: {str(e)}")
+        """
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": "Verify Your Email - SEA Marketplace",
+            "html": html_content,
+        }
+        
+        resend.Emails.send(params)
+        print(f"✓ Email sent successfully to {email} via Resend")
+    except Exception as e:
+        print(f"✗ Error sending email to {email}: {str(e)}")
 
 def send_verification_email(email, code, name):
     """Send verification code via email asynchronously"""
     # Start email sending in background thread
-    thread = threading.Thread(target=send_verification_email_async, args=(app, email, code, name))
+    thread = threading.Thread(target=send_verification_email_async, args=(email, code, name))
     thread.daemon = True
     thread.start()
     return True  # Return immediately, don't wait for email
