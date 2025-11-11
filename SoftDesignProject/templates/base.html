@@ -279,6 +279,7 @@ document.addEventListener('click', function(e) {
 <!-- Hide chat widget on chat pages -->
 {% set is_chat_page = request.endpoint == 'chat_page' %}
 
+{% if session.get('user_id') %}
 <div id="chatMin" class="chat-minimized{% if is_chat_page %} chat-hidden{% endif %}" onclick="toggleChat(true)">Chat</div>
 
 <div id="chatWidget" class="chat-widget{% if is_chat_page %} chat-hidden{% endif %}" role="dialog" aria-label="Chat">
@@ -411,6 +412,14 @@ document.addEventListener('click', function(e) {
         } else {
           // Text message
           contentEl.textContent = m.content;
+        }
+        
+        // Add edited indicator if message was edited
+        if(m.edited && m.message_type !== 'image') {
+          const editedSpan = document.createElement('span');
+          editedSpan.style.cssText = 'font-size: 0.75em; opacity: 0.7; margin-left: 5px; font-style: italic;';
+          editedSpan.textContent = '(edited)';
+          contentEl.appendChild(editedSpan);
         }
         
         el.appendChild(contentEl);
@@ -555,6 +564,7 @@ document.addEventListener('click', function(e) {
 
   window.addEventListener('beforeunload', ()=> { if(chatPoll) clearInterval(chatPoll); });
 </script>
+{% endif %}
 
 </body>
 </html>

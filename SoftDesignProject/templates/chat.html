@@ -99,6 +99,7 @@
   color: #666;
   margin-top: 4px;
   opacity: 0.7;
+  font-style: italic;
 }
 
 .message-wrapper.own .message-time {
@@ -307,12 +308,19 @@ function addMessage(msg, shouldScroll = true) {
   
   bubble.appendChild(contentDiv);
   
-  // Add timestamp
+  // Add timestamp and edited indicator
   const timeDiv = document.createElement('div');
   timeDiv.className = 'message-time';
   // Format the timestamp nicely
   const date = new Date(msg.created_at);
-  timeDiv.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  let timeText = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  
+  // Add "edited" indicator if message was edited
+  if (msg.edited) {
+    timeText += ' (edited)';
+  }
+  
+  timeDiv.textContent = timeText;
   
   wrapper.appendChild(bubble);
   wrapper.appendChild(timeDiv);

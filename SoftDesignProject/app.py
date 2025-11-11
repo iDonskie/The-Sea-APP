@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
 import sqlite3
 import os
 import uuid
@@ -8,13 +10,30 @@ import re
 from datetime import datetime, timedelta
 import hashlib
 import secrets
+import random
+import string
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-# Use a strong, random secret key in production
-app.secret_key = "your-super-secret-key-change-this-in-production-2024"
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+
+# Configuration - Use environment variables in production
+app.secret_key = os.environ.get('SECRET_KEY', 'your-super-secret-key-change-this-in-production-2024')
+is_production = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = is_production  # True for HTTPS in production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Email Configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')  # Your email
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Your app password
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@sea-marketplace.com')
+
+mail = Mail(app)
 
 # Simple in-memory rate limiting (use Redis in production)
 login_attempts = {}
@@ -79,6 +98,58 @@ def get_db_connection():
     # Enable WAL mode for better concurrency
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
+
+def generate_verification_code():
+    """Generate a 6-digit verification code"""
+    return ''.join(random.choices(string.digits, k=6))
+
+def send_verification_email(email, code, name):
+    """Send verification code via email"""
+    try:
+        msg = Message(
+            subject="Verify Your Email - SEA Marketplace",
+            recipients=[email]
+        )
+        msg.body = f"""
+Hello {name},
+
+Thank you for registering at SEA - Student's Emporium for All!
+
+Your verification code is: {code}
+
+Please enter this code on the verification page to complete your registration.
+This code will expire in 15 minutes.
+
+If you didn't create an account, please ignore this email.
+
+Best regards,
+SEA Marketplace Team
+        """
+        msg.html = f"""
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">SEA Marketplace</h1>
+    </div>
+    <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #333;">Hello {name},</h2>
+        <p style="color: #666; font-size: 16px;">Thank you for registering at SEA - Student's Emporium for All!</p>
+        <p style="color: #666; font-size: 16px;">Your verification code is:</p>
+        <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #667eea; font-size: 36px; letter-spacing: 8px; margin: 0;">{code}</h1>
+        </div>
+        <p style="color: #666; font-size: 14px;">Please enter this code on the verification page to complete your registration.</p>
+        <p style="color: #999; font-size: 12px; margin-top: 20px;">This code will expire in 15 minutes.</p>
+        <p style="color: #999; font-size: 12px;">If you didn't create an account, please ignore this email.</p>
+    </div>
+</body>
+</html>
+        """
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 
 def require_login():
     """Check if user is logged in and session is valid"""
@@ -216,24 +287,163 @@ def register():
         # Hash password
         password_hash = generate_password_hash(password)
         
+        # Generate verification code
+        verification_code = generate_verification_code()
+        code_expires = datetime.now() + timedelta(minutes=15)
+        
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO students (name, email, password) VALUES (?, ?, ?)",
-                        (name, email, password_hash))
+            # Insert new user with verification code
+            cur.execute("""
+                INSERT INTO students (name, email, password, email_verified, verification_code, verification_code_expires) 
+                VALUES (?, ?, ?, 0, ?, ?)
+            """, (name, email, password_hash, verification_code, code_expires))
             conn.commit()
-            flash("Registration successful! Please log in.", "success")
-            return redirect(url_for('login'))
+            user_id = cur.lastrowid
+            
+            # Send verification email
+            email_sent = send_verification_email(email, verification_code, name)
+            
+            if email_sent:
+                # Store user_id in session for verification
+                session['pending_verification_user_id'] = user_id
+                session['pending_verification_email'] = email
+                flash("Registration successful! Please check your email for the verification code.", "success")
+                return redirect(url_for('verify_email'))
+            else:
+                # If email fails, still allow registration but notify user
+                flash("Registration successful but we couldn't send the verification email. You can request a new code.", "warning")
+                session['pending_verification_user_id'] = user_id
+                session['pending_verification_email'] = email
+                return redirect(url_for('verify_email'))
+                
         except sqlite3.IntegrityError:
             flash("Email already registered. Please use a different email.")
             return render_template('register.html')
         except Exception as e:
+            print(f"Registration error: {e}")
             flash("An error occurred during registration. Please try again.")
             return render_template('register.html')
         finally:
             conn.close()
     return render_template('register.html')
 
+
+@app.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Verify email with code sent to user"""
+    if 'pending_verification_user_id' not in session:
+        flash("No pending verification. Please register first.")
+        return redirect(url_for('register'))
+    
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        
+        if not code:
+            flash("Please enter the verification code.")
+            return render_template('verify_email.html')
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        try:
+            user_id = session['pending_verification_user_id']
+            cur.execute("""
+                SELECT verification_code, verification_code_expires, email_verified 
+                FROM students WHERE student_id = ?
+            """, (user_id,))
+            user = cur.fetchone()
+            
+            if not user:
+                flash("User not found. Please register again.")
+                return redirect(url_for('register'))
+            
+            # Check if already verified
+            if user['email_verified']:
+                flash("Email already verified. Please log in.", "success")
+                session.pop('pending_verification_user_id', None)
+                session.pop('pending_verification_email', None)
+                return redirect(url_for('login'))
+            
+            # Check if code matches
+            if user['verification_code'] != code:
+                flash("Invalid verification code. Please try again.")
+                return render_template('verify_email.html')
+            
+            # Check if code expired
+            expires = datetime.fromisoformat(user['verification_code_expires'])
+            if datetime.now() > expires:
+                flash("Verification code expired. Please request a new one.")
+                return render_template('verify_email.html', expired=True)
+            
+            # Verify the email
+            cur.execute("""
+                UPDATE students 
+                SET email_verified = 1, verification_code = NULL, verification_code_expires = NULL
+                WHERE student_id = ?
+            """, (user_id,))
+            conn.commit()
+            
+            flash("Email verified successfully! You can now log in.", "success")
+            session.pop('pending_verification_user_id', None)
+            session.pop('pending_verification_email', None)
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            print(f"Verification error: {e}")
+            flash("An error occurred during verification. Please try again.")
+            return render_template('verify_email.html')
+        finally:
+            conn.close()
+    
+    return render_template('verify_email.html', email=session.get('pending_verification_email'))
+
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Resend verification code"""
+    if 'pending_verification_user_id' not in session:
+        flash("No pending verification. Please register first.")
+        return redirect(url_for('register'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        user_id = session['pending_verification_user_id']
+        cur.execute("SELECT name, email FROM students WHERE student_id = ?", (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            flash("User not found. Please register again.")
+            return redirect(url_for('register'))
+        
+        # Generate new code
+        verification_code = generate_verification_code()
+        code_expires = datetime.now() + timedelta(minutes=15)
+        
+        # Update database
+        cur.execute("""
+            UPDATE students 
+            SET verification_code = ?, verification_code_expires = ?
+            WHERE student_id = ?
+        """, (verification_code, code_expires, user_id))
+        conn.commit()
+        
+        # Send email
+        if send_verification_email(user['email'], verification_code, user['name']):
+            flash("Verification code sent! Please check your email.", "success")
+        else:
+            flash("Failed to send email. Please try again later.", "error")
+        
+        return redirect(url_for('verify_email'))
+        
+    except Exception as e:
+        print(f"Resend error: {e}")
+        flash("An error occurred. Please try again.")
+        return redirect(url_for('verify_email'))
+    finally:
+        conn.close()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -278,10 +488,17 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            cur.execute("SELECT student_id, name, password FROM students WHERE email=?", (email,))
+            cur.execute("SELECT student_id, name, password, email_verified FROM students WHERE email=?", (email,))
             user = cur.fetchone()
             
             if user and check_password_hash(user['password'], password):
+                # Check if email is verified
+                if not user['email_verified']:
+                    flash("Please verify your email before logging in. Check your inbox for the verification code.", "warning")
+                    session['pending_verification_user_id'] = user['student_id']
+                    session['pending_verification_email'] = email
+                    return redirect(url_for('verify_email'))
+                
                 # Clear failed attempts on successful login
                 if client_ip in login_attempts:
                     del login_attempts[client_ip]
@@ -416,7 +633,7 @@ def add_item():
             return render_template('add_item.html')
             
         # Validate category
-        valid_categories = ['books', 'electronics', 'supplies', 'appliances', 'clothing', 'other']
+        valid_categories = ['books', 'electronics', 'supplies', 'appliances', 'clothing', 'food', 'other']
         if category not in valid_categories:
             category = 'other'
 
@@ -749,18 +966,48 @@ def chat_messages(other_id):
         conn.commit()
         conn.close()
         return jsonify({"ok": True}), 201
-    cur.execute("""
-        SELECT id, sender_id, receiver_id, content, created_at, is_read, image_attachment, message_type
-        FROM messages
-        WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
-        ORDER BY created_at ASC
-    """, (user_id, other_id, other_id, user_id))
+    
+    # Try to get messages with edited_at column, fallback if column doesn't exist
+    try:
+        cur.execute("""
+            SELECT id, sender_id, receiver_id, content, created_at, is_read, image_attachment, message_type, edited_at
+            FROM messages
+            WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
+            ORDER BY created_at ASC
+        """, (user_id, other_id, other_id, user_id))
+    except sqlite3.OperationalError:
+        # Fallback for tables without edited_at column
+        cur.execute("""
+            SELECT id, sender_id, receiver_id, content, created_at, is_read, image_attachment, message_type
+            FROM messages
+            WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
+            ORDER BY created_at ASC
+        """, (user_id, other_id, other_id, user_id))
+    
     rows = cur.fetchall()
     cur.execute("UPDATE messages SET is_read=1 WHERE receiver_id=? AND sender_id=? AND is_read=0", (user_id, other_id))
     conn.commit()
-    msgs = [{"id": r["id"], "sender_id": r["sender_id"], "receiver_id": r["receiver_id"],
-             "content": r["content"], "created_at": r["created_at"], "is_read": r["is_read"],
-             "image_attachment": r["image_attachment"], "message_type": r["message_type"] or "text"} for r in rows]
+    
+    msgs = []
+    for r in rows:
+        msg = {
+            "id": r["id"], 
+            "sender_id": r["sender_id"], 
+            "receiver_id": r["receiver_id"],
+            "content": r["content"], 
+            "created_at": r["created_at"], 
+            "is_read": r["is_read"],
+            "image_attachment": r["image_attachment"], 
+            "message_type": r["message_type"] or "text",
+            "edited": False  # Default value
+        }
+        # Try to get edited_at if column exists
+        try:
+            msg["edited"] = bool(r["edited_at"])
+        except (KeyError, IndexError):
+            pass  # Use default value
+        msgs.append(msg)
+    
     conn.close()
     return jsonify(msgs)
 
@@ -819,7 +1066,8 @@ def edit_delete_message(message_id):
             conn.close()
             return jsonify({"error": "cannot edit image messages"}), 400
         
-        cur.execute("UPDATE messages SET content = ? WHERE id = ?", (new_content, message_id))
+        # Update message and set edited_at timestamp
+        cur.execute("UPDATE messages SET content = ?, edited_at = CURRENT_TIMESTAMP WHERE id = ?", (new_content, message_id))
         conn.commit()
         conn.close()
         return jsonify({"ok": True, "action": "edited", "new_content": new_content})
