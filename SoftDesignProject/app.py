@@ -86,6 +86,66 @@ def validate_file_upload(file):
     return True, "File is valid"
 
 
+class DatabaseCursor:
+    """Wrapper to handle SQL parameter differences between SQLite (?) and PostgreSQL (%s)"""
+    def __init__(self, cursor, is_postgres=False):
+        self._cursor = cursor
+        self._is_postgres = is_postgres
+    
+    def execute(self, query, params=None):
+        if self._is_postgres and params and '?' in query:
+            # Convert ? to %s for PostgreSQL
+            query = query.replace('?', '%s')
+        return self._cursor.execute(query, params)
+    
+    def executemany(self, query, params=None):
+        if self._is_postgres and params and '?' in query:
+            query = query.replace('?', '%s')
+        return self._cursor.executemany(query, params)
+    
+    def fetchone(self):
+        return self._cursor.fetchone()
+    
+    def fetchall(self):
+        return self._cursor.fetchall()
+    
+    def fetchmany(self, size=None):
+        return self._cursor.fetchmany(size)
+    
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+    
+    @property
+    def lastrowid(self):
+        return self._cursor.lastrowid
+    
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class DatabaseConnection:
+    """Wrapper to return our custom cursor"""
+    def __init__(self, conn, is_postgres=False):
+        self._conn = conn
+        self._is_postgres = is_postgres
+    
+    def cursor(self):
+        return DatabaseCursor(self._conn.cursor(), self._is_postgres)
+    
+    def commit(self):
+        return self._conn.commit()
+    
+    def rollback(self):
+        return self._conn.rollback()
+    
+    def close(self):
+        return self._conn.close()
+    
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 def get_db_connection():
     """
     Get database connection - PostgreSQL in production, SQLite locally
@@ -102,14 +162,14 @@ def get_db_connection():
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        return conn
+        return DatabaseConnection(conn, is_postgres=True)
     else:
         # Local development: Use SQLite
         db_path = os.path.join(BASE_DIR, 'database', 'marketplace.db')
         conn = sqlite3.connect(db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         conn.execute('PRAGMA journal_mode=WAL;')
-        return conn
+        return DatabaseConnection(conn, is_postgres=False)
 
 def generate_verification_code():
     """Generate a 6-digit verification code"""
