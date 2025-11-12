@@ -627,6 +627,9 @@
             
             <div class="product-meta">
               <span>📞 {{ it.get('contact', 'Contact via messages') }}</span>
+              {% if it.get('payment') %}
+              <span>💳 {{ it['payment'] }}</span>
+              {% endif %}
             </div>
             
             <div class="product-actions">

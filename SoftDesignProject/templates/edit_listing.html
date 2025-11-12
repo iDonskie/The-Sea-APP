@@ -105,6 +105,8 @@
             <option value="supplies" {% if item.get('category')=='supplies' %}selected{% endif %}>Supplies</option>
             <option value="appliances" {% if item.get('category')=='appliances' %}selected{% endif %}>Appliances</option>
             <option value="clothing" {% if item.get('category')=='clothing' %}selected{% endif %}>Clothing</option>
+            <option value="food" {% if item.get('category')=='food' %}selected{% endif %}>Food</option>
+            <option value="gaming" {% if item.get('category')=='gaming' %}selected{% endif %}>Gaming</option>
             <option value="other" {% if item.get('category')=='other' or not item.get('category') %}selected{% endif %}>Other</option>
           </select>
         </div>

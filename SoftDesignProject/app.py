@@ -96,11 +96,15 @@ class DatabaseCursor:
         if self._is_postgres and params and '?' in query:
             # Convert ? to %s for PostgreSQL
             query = query.replace('?', '%s')
+        if params is None:
+            return self._cursor.execute(query)
         return self._cursor.execute(query, params)
     
     def executemany(self, query, params=None):
         if self._is_postgres and params and '?' in query:
             query = query.replace('?', '%s')
+        if params is None:
+            return self._cursor.executemany(query)
         return self._cursor.executemany(query, params)
     
     def fetchone(self):
@@ -707,7 +711,7 @@ def add_item():
             return render_template('add_item.html')
             
         # Validate category
-        valid_categories = ['books', 'electronics', 'supplies', 'appliances', 'clothing', 'food', 'other']
+        valid_categories = ['books', 'electronics', 'supplies', 'appliances', 'clothing', 'food', 'gaming', 'other']
         if category not in valid_categories:
             category = 'other'
 
