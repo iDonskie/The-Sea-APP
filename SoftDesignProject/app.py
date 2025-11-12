@@ -87,13 +87,29 @@ def validate_file_upload(file):
 
 
 def get_db_connection():
-    db_path = os.path.join(BASE_DIR, 'database', 'marketplace.db')
-    # Add timeout and enable WAL mode for better concurrent access
-    conn = sqlite3.connect(db_path, timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    # Enable WAL mode for better concurrency
-    conn.execute('PRAGMA journal_mode=WAL;')
-    return conn
+    """
+    Get database connection - PostgreSQL in production, SQLite locally
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if database_url:
+        # Production: Use PostgreSQL
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        # Render uses postgres:// but psycopg2 needs postgresql://
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        return conn
+    else:
+        # Local development: Use SQLite
+        db_path = os.path.join(BASE_DIR, 'database', 'marketplace.db')
+        conn = sqlite3.connect(db_path, timeout=30.0)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA journal_mode=WAL;')
+        return conn
 
 def generate_verification_code():
     """Generate a 6-digit verification code"""
