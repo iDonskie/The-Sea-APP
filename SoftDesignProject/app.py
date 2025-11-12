@@ -1514,78 +1514,157 @@ def init_database():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Create students table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS students (
-                student_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                email_verified INTEGER DEFAULT 0,
-                verification_code TEXT,
-                verification_code_expires DATETIME,
-                is_admin INTEGER DEFAULT 0
-            )
-        """)
+        # Check if using PostgreSQL or SQLite
+        is_postgres = os.getenv('DATABASE_URL') is not None
         
-        # Create items table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS items (
-                item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER,
-                item_name TEXT NOT NULL,
-                price REAL NOT NULL,
-                description TEXT,
-                image TEXT,
-                contact TEXT,
-                payment TEXT,
-                status TEXT DEFAULT 'available',
-                category TEXT DEFAULT 'other',
-                moderation_status TEXT DEFAULT 'approved',
-                FOREIGN KEY (student_id) REFERENCES students(student_id)
-            )
-        """)
-        
-        # Create messages table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER,
-                receiver_id INTEGER,
-                message TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                read INTEGER DEFAULT 0,
-                edited_at DATETIME,
-                FOREIGN KEY (sender_id) REFERENCES students(student_id),
-                FOREIGN KEY (receiver_id) REFERENCES students(student_id)
-            )
-        """)
-        
-        # Create item_images table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS item_images (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_id INTEGER NOT NULL,
-                image_filename TEXT NOT NULL,
-                is_primary INTEGER DEFAULT 0,
-                upload_order INTEGER DEFAULT 0,
-                FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
-            )
-        """)
-        
-        # Create admin_actions table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS admin_actions (
-                action_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                admin_id INTEGER,
-                action_type TEXT,
-                target_type TEXT,
-                target_id INTEGER,
-                details TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (admin_id) REFERENCES students(student_id)
-            )
-        """)
+        if is_postgres:
+            # PostgreSQL syntax
+            # Create students table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS students (
+                    student_id SERIAL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    email_verified INTEGER DEFAULT 0,
+                    verification_code TEXT,
+                    verification_code_expires TIMESTAMP,
+                    is_admin INTEGER DEFAULT 0
+                )
+            """)
+            
+            # Create items table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS items (
+                    item_id SERIAL PRIMARY KEY,
+                    student_id INTEGER,
+                    item_name TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    description TEXT,
+                    image TEXT,
+                    contact TEXT,
+                    payment TEXT,
+                    status TEXT DEFAULT 'available',
+                    category TEXT DEFAULT 'other',
+                    moderation_status TEXT DEFAULT 'approved',
+                    FOREIGN KEY (student_id) REFERENCES students(student_id)
+                )
+            """)
+            
+            # Create messages table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    message_id SERIAL PRIMARY KEY,
+                    sender_id INTEGER,
+                    receiver_id INTEGER,
+                    message TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read INTEGER DEFAULT 0,
+                    edited_at TIMESTAMP,
+                    FOREIGN KEY (sender_id) REFERENCES students(student_id),
+                    FOREIGN KEY (receiver_id) REFERENCES students(student_id)
+                )
+            """)
+            
+            # Create item_images table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS item_images (
+                    id SERIAL PRIMARY KEY,
+                    item_id INTEGER NOT NULL,
+                    image_filename TEXT NOT NULL,
+                    is_primary INTEGER DEFAULT 0,
+                    upload_order INTEGER DEFAULT 0,
+                    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Create admin_actions table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS admin_actions (
+                    action_id SERIAL PRIMARY KEY,
+                    admin_id INTEGER,
+                    action_type TEXT,
+                    target_type TEXT,
+                    target_id INTEGER,
+                    details TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (admin_id) REFERENCES students(student_id)
+                )
+            """)
+        else:
+            # SQLite syntax
+            # Create students table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS students (
+                    student_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    email_verified INTEGER DEFAULT 0,
+                    verification_code TEXT,
+                    verification_code_expires DATETIME,
+                    is_admin INTEGER DEFAULT 0
+                )
+            """)
+            
+            # Create items table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS items (
+                    item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER,
+                    item_name TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    description TEXT,
+                    image TEXT,
+                    contact TEXT,
+                    payment TEXT,
+                    status TEXT DEFAULT 'available',
+                    category TEXT DEFAULT 'other',
+                    moderation_status TEXT DEFAULT 'approved',
+                    FOREIGN KEY (student_id) REFERENCES students(student_id)
+                )
+            """)
+            
+            # Create messages table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sender_id INTEGER,
+                    receiver_id INTEGER,
+                    message TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    read INTEGER DEFAULT 0,
+                    edited_at DATETIME,
+                    FOREIGN KEY (sender_id) REFERENCES students(student_id),
+                    FOREIGN KEY (receiver_id) REFERENCES students(student_id)
+                )
+            """)
+            
+            # Create item_images table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS item_images (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    item_id INTEGER NOT NULL,
+                    image_filename TEXT NOT NULL,
+                    is_primary INTEGER DEFAULT 0,
+                    upload_order INTEGER DEFAULT 0,
+                    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Create admin_actions table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS admin_actions (
+                    action_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    admin_id INTEGER,
+                    action_type TEXT,
+                    target_type TEXT,
+                    target_id INTEGER,
+                    details TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (admin_id) REFERENCES students(student_id)
+                )
+            """)
         
         conn.commit()
         conn.close()
